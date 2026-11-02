@@ -7,7 +7,7 @@ import { COVERAGE, radarTile, type Frame } from "../radar/jma";
 import { radar, setPlace } from "../radar/radar";
 import { bounds, checkpoints, elevationAt, geojson, pointAt, routeLength, stageById } from "../stages/stages";
 import { useStore } from "../store";
-import { view, setCollapsed, type Base } from "./view";
+import { setSnap, view, type Base } from "./view";
 
 // MapLibre looks for its worker next to its own module, which bundling moves; Vite builds it separately.
 setWorkerUrl(workerUrl);
@@ -309,11 +309,11 @@ export function RadarMap() {
       syncFrames(map, frames, index);
     });
     // Moving the map yourself folds the sheet away to make room; a fit to a stage doesn't.
-    const fold = (e: { originalEvent?: Event }) => e.originalEvent && setCollapsed(true);
+    const fold = (e: { originalEvent?: Event }) => e.originalEvent && setSnap("folded");
     // Gestures (drag, pinch, double tap) start a move that carries the event behind it; a wheel zoom's
     // move doesn't, but the wheel itself is reported.
     map.on("movestart", fold);
-    map.on("wheel", () => setCollapsed(true));
+    map.on("wheel", () => setSnap("folded"));
     // A tap pins a spot; while a stage is shown the map is just for looking around.
     map.on("click", (e) => !radar.get().stage && setPlace({ lng: e.lngLat.lng, lat: e.lngLat.lat, source: "pin" }));
     // Open on the stage straight away. The sheet is already laid out (it renders with the map), so its

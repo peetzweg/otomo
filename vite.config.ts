@@ -1,9 +1,19 @@
 import react from "@vitejs/plugin-react";
+import { execSync } from "node:child_process";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 /** Where the app is served from: "/" locally, "/otomo/" on GitHub Pages (set by the workflow). */
 const base = process.env.BASE_PATH ?? "/";
+
+/** Short commit of the build, shown in the diagnostics panel so you can tell which version a phone runs. */
+const commit = (() => {
+  try {
+    return execSync("git rev-parse --short HEAD").toString().trim();
+  } catch {
+    return "dev";
+  }
+})();
 
 /** The deployed origin, for share links, which have to be absolute. The Pages workflow sets it. */
 const siteUrl = (process.env.SITE_URL ?? "").replace(/\/$/, "");
@@ -13,6 +23,10 @@ const HOUR = 60 * 60;
 
 export default defineConfig({
   base,
+  define: {
+    __COMMIT__: JSON.stringify(commit),
+    __BUILT_AT__: JSON.stringify(new Date().toISOString()),
+  },
   // Reachable over Tailscale (tailscale serve proxies the tailnet's ts.net name to the dev server).
   server: { allowedHosts: [".ts.net"] },
   // MapLibre's worker is an ES module that imports its shared chunk.

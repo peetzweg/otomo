@@ -4,10 +4,12 @@ import { NOW_INDEX, radar, seek, selectStage, setCursor, togglePlay } from "../r
 import { clock, summarize, summarizeRoute, type Summary } from "../radar/summary";
 import type { Progress } from "../stages/progress";
 import { checkpoints, climbBetween, dayLabel, elevationAt, routeLength, STAGES, stageById, type Stage } from "../stages/stages";
+import { describe } from "../stages/weather";
 import { useStore } from "../store";
 import { PauseIcon, PinIcon, PlayIcon } from "./icons";
 import { useDrawer } from "./drawer";
-import { setCollapsed, view } from "./view";
+import { StageWeather, useStageWeather, type StageWeatherData } from "./StageWeather";
+import { setSnap, view } from "./view";
 
 /** The panel over the bottom of the map: what the rain does here, and the timeline to scrub through it. */
 export function Sheet() {
@@ -19,10 +21,15 @@ export function Sheet() {
   const route = useStore(radar, (s) => s.route);
   const progress = useStore(radar, (s) => s.progress);
   const riding = progress && progress.offM <= ON_ROUTE_M ? progress : undefined;
-  const collapsed = useStore(view, (s) => s.collapsed);
+  const snap = useStore(view, (s) => s.snap);
+  const collapsed = snap === "folded";
   const sheet = useRef<HTMLElement>(null);
   const head = useRef<HTMLDivElement>(null);
-  const drawer = useDrawer(sheet, head);
+  const body = useRef<HTMLDivElement>(null);
+  const halfEnd = useRef<HTMLDivElement>(null);
+  // Only a stage has more to show when pulled all the way up.
+  const drawer = useDrawer({ sheet, head, body, halfEnd }, !!stage);
+  const weather = useStageWeather(stage);
 
   const where = stage
     ? `${dayLabel(stage)} · ${stage.start} start`
@@ -42,7 +49,7 @@ export function Sheet() {
             : reading;
 
   return (
-    <section ref={sheet} className={`sheet${collapsed ? " collapsed" : ""}`} aria-label="Rain forecast">
+    <section ref={sheet} className={`sheet ${snap}`} aria-label="Rain forecast">
       {/* The head is the handle: drag it, flick it or tap it. Folded, only the head shows. */}
       <div
         ref={head}
@@ -51,7 +58,7 @@ export function Sheet() {
         tabIndex={0}
         aria-expanded={!collapsed}
         aria-label={collapsed ? "Show details" : "Hide details"}
-        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setCollapsed(!collapsed))}
+        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setSnap(collapsed ? "half" : "folded"))}
         {...drawer}
       >
         <span className="grabber" aria-hidden="true" />
@@ -61,14 +68,40 @@ export function Sheet() {
           {summary.title}
         </h1>
       </div>
-      <div className="sheet-body" inert={collapsed}>
-        <p className="sheet-detail">{summary.detail}</p>
-        {stage && progress && <ProgressLine stage={stage} progress={progress} />}
-        <StagePicker selected={stage?.id} />
-        {stage && <RouteProfile stage={stage} riding={riding} />}
-        <Timeline />
+      <div ref={body} className="sheet-body" inert={collapsed}>
+        <div>
+          <p className="sheet-detail">{summary.detail}</p>
+          {stage && progress && <ProgressLine stage={stage} progress={progress} />}
+          <StagePicker selected={stage?.id} />
+          {stage && <RouteProfile stage={stage} riding={riding} weather={weather} />}
+          <Timeline />
+          <div ref={halfEnd} />
+          {stage && (
+            <>
+              {/* The way up to the rest, for anyone who doesn't think to pull. */}
+              <button className="sheet-more" onClick={() => setSnap(snap === "full" ? "half" : "full")} aria-expanded={snap === "full"}>
+                {snap === "full" ? "Less" : "Weather along the route"}
+                <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+                  <path d="M2.5 7.5 6 4l3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <StageWeather stage={stage} data={weather} />
+            </>
+          )}
+        </div>
       </div>
     </section>
+  );
+}
+
+/** "☀️ 15–19°": the day's range at the start or finish (`at` 0 or -1), once the forecast is in. */
+function DayTemps({ weather, at }: { weather: StageWeatherData | undefined; at: number }) {
+  const f = weather?.forecast?.at(at);
+  if (!f) return null;
+  return (
+    <small className="profile-temps">
+      {describe(f.day.code).icon} {Math.round(f.day.low)}–{Math.round(f.day.high)}°
+    </small>
   );
 }
 
@@ -140,7 +173,7 @@ const MIN_RANGE_M = 300;
  * The stage's elevation profile, filled with the rain on the route at the frame on the map: scrub the
  * timeline and the colours move along the climbs.
  */
-function RouteProfile({ stage, riding }: { stage: Stage; riding: Progress | undefined }) {
+function RouteProfile({ stage, riding, weather }: { stage: Stage; riding: Progress | undefined; weather: StageWeatherData | undefined }) {
   const row = useStore(radar, (s) => s.route?.[s.index]);
   const cursorKm = useStore(radar, (s) => s.cursorKm);
   const chart = useRef<HTMLDivElement>(null);
@@ -232,11 +265,17 @@ function RouteProfile({ stage, riding }: { stage: Stage; riding: Progress | unde
         )}
       </div>
       <div className="profile-labels">
-        <span>{from}</span>
+        <span>
+          {from}
+          <DayTemps weather={weather} at={0} />
+        </span>
         <span>
           {stage.distanceKm} km · ↑{stage.climbM.toLocaleString("en-US")} m · top {high.toLocaleString("en-US")} m
         </span>
-        <span>{to}</span>
+        <span>
+          {to}
+          <DayTemps weather={weather} at={-1} />
+        </span>
       </div>
     </div>
   );

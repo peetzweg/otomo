@@ -15,8 +15,8 @@ const savedBase = localStorage.getItem(BASE_KEY) as Base | null;
 
 export const view = createStore({
   base: BASES.some((b) => b.id === savedBase) ? savedBase! : ("map" as Base),
-  /** The sheet folded down to its headline, to give the map the screen. */
-  collapsed: false,
+  /** Where the sheet rests: folded to its headline, half (everyday), or full (more, scrolling). */
+  snap: "half" as Snap,
   /** The welcome sheet has been seen; it only ever shows once. */
   welcomed: localStorage.getItem(WELCOMED_KEY) === "1",
 });
@@ -31,4 +31,5 @@ export function setBase(base: Base) {
   view.set({ base });
 }
 
-export const setCollapsed = (collapsed: boolean) => view.get().collapsed !== collapsed && view.set({ collapsed });
+export type Snap = "folded" | "half" | "full";
+export const setSnap = (snap: Snap) => view.get().snap !== snap && view.set({ snap });

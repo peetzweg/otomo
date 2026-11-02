@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { css, LEVELS } from "./radar/jma";
 import { followMe, locate, NOW_INDEX, radar } from "./radar/radar";
 import { clock } from "./radar/summary";
 import { useStore } from "./store";
 import { LayersIcon, LegendIcon, LocateIcon } from "./ui/icons";
+import { Diagnostics } from "./ui/Diagnostics";
 import { InstallHint } from "./ui/InstallHint";
 import { RadarMap } from "./ui/RadarMap";
 import { Sheet } from "./ui/Sheet";
@@ -11,8 +12,9 @@ import { BASES, setBase, view } from "./ui/view";
 import { Welcome } from "./ui/Welcome";
 
 export function App() {
-  const [panel, setPanel] = useState<"legend" | "layers">();
+  const [panel, setPanel] = useState<"legend" | "layers" | "diagnostics">();
   const toggle = (name: "legend" | "layers") => setPanel(panel === name ? undefined : name);
+  const press = useRef<number>(undefined);
   const locating = useStore(radar, (s) => s.locating);
   const stage = useStore(radar, (s) => s.stage);
   const tracking = useStore(radar, (s) => s.tracking);
@@ -23,7 +25,15 @@ export function App() {
     <>
       <RadarMap />
       <header className="topbar">
-        <div className="pill brand">
+        <div
+          className="pill brand"
+          // Long-press for the diagnostics panel.
+          onPointerDown={() => (press.current = window.setTimeout(() => setPanel("diagnostics"), 700))}
+          onPointerUp={() => clearTimeout(press.current)}
+          onPointerLeave={() => clearTimeout(press.current)}
+          onPointerCancel={() => clearTimeout(press.current)}
+          onContextMenu={(e) => e.preventDefault()}
+        >
           <img className="brand-mascot" src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
           <span className="brand-name">otomo</span>
           {updated && <span className="brand-updated">Radar {clock(updated)}</span>}
@@ -49,6 +59,7 @@ export function App() {
       {welcomed && !panel && <InstallHint />}
       {panel === "legend" && <Legend />}
       {panel === "layers" && <Layers onPick={() => setPanel(undefined)} />}
+      {panel === "diagnostics" && <Diagnostics onClose={() => setPanel(undefined)} />}
       <Sheet />
       {!welcomed && <Welcome />}
     </>
