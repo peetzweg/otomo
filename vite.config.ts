@@ -64,9 +64,9 @@ export default defineConfig({
       },
       manifest: {
         id: base,
-        name: "Otomo · Tour de Friends Japan",
+        name: "Otomo · Tour de Friends 9 Japan",
         short_name: "Otomo",
-        description: "The companion app for Rad Race Tour de Friends Japan: rain radar along every stage, the climbs, and where you are.",
+        description: "The companion app for Rad Race Tour de Friends 9 Japan: rain radar along every stage, the climbs, and where you are.",
         lang: "en",
         theme_color: "#000000",
         background_color: "#000000",

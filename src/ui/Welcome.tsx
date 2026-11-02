@@ -21,7 +21,7 @@ export function Welcome() {
     <div className={`welcome${leaving ? " leaving" : ""}`}>
       <section className="welcome-sheet" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
         <img className="welcome-mascot" src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
-        <p className="welcome-event">Rad Race · Tour de Friends Japan</p>
+        <p className="welcome-event">Rad Race · Tour de Friends 9 · Japan</p>
         <h1 id="welcome-title" className="welcome-name">
           お供 <span>otomo</span>
         </h1>

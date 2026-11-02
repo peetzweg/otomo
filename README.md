@@ -5,7 +5,7 @@
 <h1 align="center">Otomo お供</h1>
 
 <p align="center">
-  <strong>The companion app for Rad Race Tour de Friends Japan.</strong><br>
+  <strong>The companion app for Rad Race Tour de Friends 9 Japan.</strong><br>
   Rain radar along every stage, the climbs, and where you are.
 </p>
 
