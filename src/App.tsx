@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { css, LEVELS } from "./radar/jma";
-import { locate, NOW_INDEX, radar, track } from "./radar/radar";
+import { followMe, locate, NOW_INDEX, radar } from "./radar/radar";
 import { clock } from "./radar/summary";
 import { useStore } from "./store";
 import { LayersIcon, LegendIcon, LocateIcon } from "./ui/icons";
@@ -38,7 +38,7 @@ export function App() {
           <button
             className={`round${locating ? " busy" : ""}${tracking ? " on" : ""}`}
             // On a stage, follow along it; otherwise check the rain where you are.
-            onClick={() => (stage ? track() : locate())}
+            onClick={() => (stage ? followMe() : locate())}
             aria-label={stage ? "Follow my position along the stage" : "Rain at my location"}
           >
             <LocateIcon />
@@ -71,7 +71,11 @@ function Layers({ onPick }: { onPick: () => void }) {
               onPick();
             }}
           >
-            <span className="layers-swatch" />
+            {/* Each style over Sakurajima, rendered from the app itself (scripts/layers/render.mjs). */}
+            <picture className="layers-swatch">
+              <source srcSet={`${import.meta.env.BASE_URL}layers/${option.id}-dark.jpg`} media="(prefers-color-scheme: dark)" />
+              <img src={`${import.meta.env.BASE_URL}layers/${option.id}-light.jpg`} alt="" />
+            </picture>
             {option.label}
           </button>
         ))}

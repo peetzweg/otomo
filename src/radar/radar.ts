@@ -31,6 +31,8 @@ interface RadarState {
   progress: Progress | undefined;
   /** The km being pointed at on the elevation profile, shown on the map too. */
   cursorKm: number | undefined;
+  /** Bumped by the locate button: the map centres on the position (or on the next fix, if none yet). */
+  focus: number;
 }
 
 const TOKYO_STATION: Place = { lng: 139.7671, lat: 35.6812, source: "default" };
@@ -72,6 +74,7 @@ export const radar = createStore<RadarState>({
   tracking: false,
   progress: undefined,
   cursorKm: undefined,
+  focus: 0,
 });
 
 /** Index of the run's own frame: the boundary between what was measured and what is forecast. */
@@ -186,6 +189,12 @@ navigator.permissions
   .catch(() => {});
 
 export const setCursor = (cursorKm: number | undefined) => radar.set({ cursorKm });
+
+/** Follow the position and bring the map to it. */
+export function followMe() {
+  track();
+  radar.set({ focus: radar.get().focus + 1 });
+}
 
 export const seek = (index: number) => radar.set({ index, playing: false });
 

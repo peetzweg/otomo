@@ -41,9 +41,30 @@
   box-sizing: border-box;
 }
 
-html,
-body,
+/*
+ * The app is one screen-sized box, and everything on it (map, bars, sheets) is placed inside that box
+ * rather than against the viewport. As an installed iOS app with a translucent status bar, the
+ * viewport comes out shorter than the screen by the status bar's height, so anything pinned to its
+ * bottom stops short over an empty black strip. Viewport units still measure the whole screen there.
+ */
 #root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /* In Safari, the visible area as its toolbars come and go. */
+  height: 100dvh;
+}
+
+@media (display-mode: standalone) {
+  /* Installed, there are no toolbars; 100vh is the full screen even when the viewport isn't. */
+  #root {
+    height: 100vh;
+  }
+}
+
+html,
+body {
   height: 100%;
   margin: 0;
   overflow: hidden;
@@ -85,7 +106,7 @@ button {
 /* ---------- Map ---------- */
 
 .map {
-  position: fixed;
+  position: absolute;
   inset: 0;
 }
 
@@ -136,7 +157,7 @@ button {
 /* ---------- Top bar ---------- */
 
 .topbar {
-  position: fixed;
+  position: absolute;
   top: calc(var(--safe-top) + 10px);
   left: 12px;
   right: 12px;
@@ -206,7 +227,7 @@ button {
 /* ---------- Legend ---------- */
 
 .legend {
-  position: fixed;
+  position: absolute;
   top: calc(var(--safe-top) + 64px);
   right: 12px;
   width: 232px;
@@ -257,7 +278,7 @@ button {
 /* ---------- Sheet ---------- */
 
 .sheet {
-  position: fixed;
+  position: absolute;
   left: 8px;
   right: 8px;
   bottom: calc(var(--safe-bottom) + 8px);
@@ -751,30 +772,33 @@ button {
 }
 
 .layers-swatch {
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  box-shadow: inset 0 0 0 1px var(--fill);
+  display: block;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  overflow: hidden;
+  /* A hairline so a dark thumbnail still has an edge on the dark panel. */
+  box-shadow: inset 0 0 0 1px rgba(127, 127, 127, 0.25);
+  transition:
+    box-shadow 200ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+.layers-swatch img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.layers-option:active .layers-swatch {
+  transform: scale(0.95);
 }
 
 .layers-option[aria-checked="true"] .layers-swatch {
-  box-shadow: 0 0 0 2.5px var(--accent);
-}
-
-.layers-map .layers-swatch {
-  background: linear-gradient(135deg, #1b1e27 0 45%, #2a2e3a 45% 55%, #1b1e27 55%);
-}
-
-.layers-terrain .layers-swatch {
-  background: radial-gradient(circle at 30% 30%, #4a4f5e, #15171d 70%);
-}
-
-.layers-topo .layers-swatch {
-  background: repeating-radial-gradient(circle at 60% 60%, #f3f1ea 0 5px, #c9b98f 5px 6px);
-}
-
-.layers-satellite .layers-swatch {
-  background: radial-gradient(circle at 70% 30%, #6b7d4c, #2f3d24 55%, #1d2a3a);
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--label);
 }
 
 /* ---------- Brand ---------- */
@@ -793,7 +817,7 @@ button {
 /* ---------- Install hint ---------- */
 
 .install {
-  position: fixed;
+  position: absolute;
   top: calc(var(--safe-top) + 64px);
   left: 12px;
   right: 12px;
@@ -880,7 +904,7 @@ button {
 /* ---------- Welcome ---------- */
 
 .welcome {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 10;
   display: flex;

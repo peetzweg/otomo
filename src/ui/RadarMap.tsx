@@ -219,14 +219,31 @@ function syncRoute(map: MapLibre, stageId: string | undefined) {
   });
 }
 
+/** Close enough to read the road around you: a few kilometres across. */
+const FOCUS_ZOOM = 12.5;
+
+/** What of the map is actually visible: between the top bar and the sheet. */
+function clearArea(map: MapLibre) {
+  const height = map.getContainer().clientHeight;
+  const top = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 60;
+  const sheet = document.querySelector(".sheet")?.getBoundingClientRect().top ?? height * 0.6;
+  return { top, bottom: Math.max(0, height - sheet) };
+}
+
+/** Puts a point in the middle of the visible map, not the middle of the screen behind the sheet. */
+function centerOn(map: MapLibre, lng: number, lat: number) {
+  const { top, bottom } = clearArea(map);
+  map.easeTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), FOCUS_ZOOM), padding: { top, bottom, left: 0, right: 0 }, duration: 700 });
+}
+
 /** Frames the stage between the top bar and the sheet. */
 function fitStage(map: MapLibre, stageId: string | undefined, animate = true) {
   const stage = stageById(stageId);
   if (!stage) return;
-  const top = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 60;
-  const sheet = document.querySelector(".sheet")?.getBoundingClientRect().top ?? innerHeight * 0.6;
+  // Measured on the app's own box, not innerHeight: installed on iOS, the viewport can be shorter than the screen.
+  const { top, bottom } = clearArea(map);
   map.fitBounds(bounds(stage), {
-    padding: { top: top + 24, bottom: innerHeight - sheet + 24, left: 28, right: 28 },
+    padding: { top: top + 24, bottom: bottom + 24, left: 28, right: 28 },
     duration: animate ? 900 : 0,
     maxZoom: 11,
   });
@@ -364,11 +381,18 @@ export function RadarMap() {
     markerRef.current?.setLngLat([place.lng, place.lat]);
     markerRef.current?.getElement().classList.toggle("gps", place.source === "gps");
     // Only a fresh location fix moves the map; a tapped pin is already where you're looking.
-    if (place.source === "gps") {
-      const map = mapRef.current;
-      map?.easeTo({ center: [place.lng, place.lat], zoom: Math.max(map.getZoom(), 9) });
-    }
+    if (place.source === "gps" && mapRef.current) centerOn(mapRef.current, place.lng, place.lat);
   }, [place]);
+
+  // The locate button on a stage: centre on you now, or on the first fix if GPS is still warming up.
+  const focus = useStore(radar, (s) => s.focus);
+  const focused = useRef(0);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !position || focus === focused.current) return;
+    focused.current = focus;
+    centerOn(map, position.lng, position.lat);
+  }, [focus, position]);
 
   // You, on a stage. (On a single spot, the spot's own dot shows a located position.)
   useEffect(() => {

@@ -27,7 +27,7 @@ export default defineConfig({
       registerType: "prompt",
       pwaAssets: { config: true, overrideManifestIcons: true, includeHtmlHeadLinks: true, injectThemeColor: false },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,jpg,ico}"],
         globIgnores: ["**/apple-splash-*", "**/og.*"],
         runtimeCaching: [
           {
