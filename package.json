@@ -1,0 +1,48 @@
+{
+  "name": "ameblitz",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A rain radar for Japan: the last 90 minutes and the next hour of rain, at 250 m, from the Japan Meteorological Agency's nowcast.",
+  "keywords": [
+    "rain-radar",
+    "nowcast",
+    "japan",
+    "jma",
+    "weather",
+    "pwa",
+    "maplibre",
+    "react",
+    "vite"
+  ],
+  "homepage": "https://peetzweg.github.io/ameblitz/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peetzweg/ameblitz.git"
+  },
+  "license": "MIT",
+  "author": "peetzweg <phil.czek@gmail.com>",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "maplibre-gl": "^6.16.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vite-pwa/assets-generator": "^2.0.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vite-plugin-pwa": "^2.0.0",
+    "workbox-window": "^7.4.1"
+  }
+}

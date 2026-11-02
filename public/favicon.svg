@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!--
+    A raindrop in the radar's own colour ramp (blue for light rain, through violet, to pink for heavy),
+    with a bolt cut through it: ame (雨, rain) and blitz.
+  -->
+  <defs>
+    <linearGradient id="rain" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#40a0ff"/>
+      <stop offset="0.55" stop-color="#6e46f0"/>
+      <stop offset="1" stop-color="#ff468c"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0b0d12"/>
+  <path d="M256 70 C256 70 118 228 118 318 C118 396 180 452 256 452 C332 452 394 396 394 318 C394 228 256 70 256 70 Z" fill="url(#rain)"/>
+  <path d="M278 170 L204 316 H262 L232 410 L326 260 H268 L300 170 Z" fill="#0b0d12"/>
+</svg>

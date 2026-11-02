@@ -1,0 +1,425 @@
+/* ---------- Tokens ---------- */
+
+:root {
+  color-scheme: light dark;
+  --bg: #f4f5f7;
+  --label: #0b0d12;
+  --label-2: rgba(20, 24, 33, 0.62);
+  --label-3: rgba(20, 24, 33, 0.32);
+  --material: rgba(255, 255, 255, 0.72);
+  --material-edge: rgba(255, 255, 255, 0.9);
+  --fill: rgba(20, 24, 33, 0.08);
+  --shadow: 0 12px 40px -12px rgba(15, 20, 40, 0.35), 0 0 0 0.5px rgba(15, 20, 40, 0.08);
+  /* The middle of the rain ramp: forecast frames and the playhead wear it. */
+  --accent: #6e46f0;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --sans: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, "Hiragino Sans", sans-serif;
+  --rounded: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0d12;
+    --label: #f5f6fa;
+    --label-2: rgba(235, 238, 250, 0.62);
+    --label-3: rgba(235, 238, 250, 0.3);
+    --material: rgba(22, 25, 34, 0.68);
+    --material-edge: rgba(255, 255, 255, 0.08);
+    --fill: rgba(255, 255, 255, 0.08);
+    --shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.7), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+    --accent: #9a7bff;
+  }
+}
+
+/* ---------- Platform baseline ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font: 15px/1.35 var(--sans);
+  color: var(--label);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.glass,
+.pill,
+.round,
+.sheet,
+.legend {
+  background: var(--material);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
+  box-shadow: var(--shadow), inset 0 0.5px 0 var(--material-edge);
+}
+
+/* ---------- Map ---------- */
+
+.map {
+  position: fixed;
+  inset: 0;
+}
+
+.maplibregl-ctrl-bottom-right {
+  /* Clear of the sheet, which covers the bottom of the map. */
+  bottom: calc(var(--sheet-height, 230px) + var(--safe-bottom) + 12px);
+}
+
+.maplibregl-ctrl-attrib {
+  font-size: 11px;
+}
+
+.place-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--label);
+  border: 3px solid var(--bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.place-dot.gps {
+  background: #2f8bff;
+  border-color: #fff;
+}
+
+.place-dot.gps::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: #2f8bff;
+  animation: ping 2.4s var(--ease-out) infinite;
+  z-index: -1;
+}
+
+@keyframes ping {
+  from {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  to {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+
+/* ---------- Top bar ---------- */
+
+.topbar {
+  position: fixed;
+  top: calc(var(--safe-top) + 10px);
+  left: 12px;
+  right: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.topbar > * {
+  pointer-events: auto;
+}
+
+.pill {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 22px;
+  align-items: center;
+}
+
+.brand-name {
+  font: 700 17px/1 var(--rounded);
+  letter-spacing: -0.01em;
+}
+
+.brand-updated {
+  font-size: 13px;
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.round {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  transition: transform 160ms var(--ease-out);
+}
+
+.round:active {
+  transform: scale(0.92);
+}
+
+.round.on {
+  color: var(--accent);
+}
+
+.round.busy svg {
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  to {
+    opacity: 0.3;
+  }
+}
+
+/* ---------- Legend ---------- */
+
+.legend {
+  position: fixed;
+  top: calc(var(--safe-top) + 64px);
+  right: 12px;
+  width: 232px;
+  padding: 12px 14px 10px;
+  border-radius: 18px;
+  animation: drop-in 220ms var(--ease-out);
+  transform-origin: top right;
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(-4px);
+  }
+}
+
+.legend-ramp,
+.legend-steps {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.legend-ramp {
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.legend-steps span {
+  font-size: 11px;
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+  transform: translateX(-50%);
+  justify-self: start;
+}
+
+.legend-unit {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--label-3);
+}
+
+.legend-unit a {
+  color: var(--label-2);
+}
+
+/* ---------- Sheet ---------- */
+
+.sheet {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: calc(var(--safe-bottom) + 8px);
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px 18px 14px;
+  border-radius: 28px;
+}
+
+.sheet-where {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--label-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sheet-title {
+  margin: 2px 0 0;
+  font: 700 26px/1.15 var(--rounded);
+  letter-spacing: -0.02em;
+}
+
+.sheet-detail {
+  margin: 4px 0 0;
+  color: var(--label-2);
+  min-height: 1.35em;
+}
+
+/* ---------- Timeline ---------- */
+
+.timeline {
+  margin-top: 14px;
+}
+
+.timeline-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.play {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--label);
+  color: var(--bg);
+  transition: transform 160ms var(--ease-out);
+}
+
+.play:active {
+  transform: scale(0.92);
+}
+
+.play:disabled {
+  opacity: 0.3;
+}
+
+.timeline-time {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+}
+
+.timeline-clock {
+  font: 600 22px/1 var(--rounded);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-relative {
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-relative.forecast {
+  color: var(--accent);
+}
+
+.timeline-zone {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--label-3);
+}
+
+.track {
+  position: relative;
+  height: 56px;
+  touch-action: none;
+  cursor: ew-resize;
+  outline: none;
+}
+
+.track-forecast {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  border-radius: 0 10px 10px 0;
+  background: repeating-linear-gradient(-45deg, var(--fill) 0 4px, transparent 4px 8px);
+}
+
+.bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.bar {
+  flex: 1;
+  border-radius: 3px 3px 1px 1px;
+  transition: height 300ms var(--ease-out);
+}
+
+.bar.dry {
+  height: 3px;
+  background: var(--label-3);
+}
+
+.playhead {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--label);
+  box-shadow: 0 0 0 2px var(--material);
+}
+
+.track:focus-visible .playhead {
+  background: var(--accent);
+}
+
+.track-labels {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--label-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.track-now {
+  position: absolute;
+  transform: translateX(-50%);
+  font-weight: 600;
+  color: var(--label-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
