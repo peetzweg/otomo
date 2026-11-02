@@ -1,23 +1,25 @@
 {
-  "name": "ameblitz",
+  "name": "otomo",
   "private": true,
   "version": "0.1.0",
-  "description": "A rain radar for Japan: the last 90 minutes and the next hour of rain, at 250 m, from the Japan Meteorological Agency's nowcast.",
+  "description": "Otomo (お供), the companion app for Rad Race Tour de Friends Japan: rain radar along every stage, the climbs, and where you are.",
   "keywords": [
     "rain-radar",
     "nowcast",
     "japan",
     "jma",
-    "weather",
+    "cycling",
+    "gpx",
+    "komoot",
     "pwa",
     "maplibre",
     "react",
     "vite"
   ],
-  "homepage": "https://peetzweg.github.io/ameblitz/",
+  "homepage": "https://peetzweg.github.io/otomo/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/peetzweg/ameblitz.git"
+    "url": "git+https://github.com/peetzweg/otomo.git"
   },
   "license": "MIT",
   "author": "peetzweg <phil.czek@gmail.com>",
@@ -30,6 +32,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "maplibre-contour": "^0.1.1",
     "maplibre-gl": "^6.16.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

@@ -1,3 +1,4 @@
+import { SAMPLE_KM } from "../stages/stages";
 import { LEVELS, STEP_MS, type Frame } from "./jma";
 import { NOW_INDEX } from "./radar";
 
@@ -49,4 +50,49 @@ export function summarize(frames: Frame[], levels: number[]): Summary {
     return { title: "Dry for the next hour", detail: `The rain stopped around ${clock(frames[lastWet + 1].time)}` };
   }
   return { title: "Dry for the next hour", detail: "No rain here in the last 90 minutes either" };
+}
+
+/** "km 40–65": the stretch from the first to the last wet reading, `offset` readings into the route. */
+function stretch(row: number[], offset: number) {
+  const first = row.findIndex((l) => l > 0);
+  const last = row.findLastIndex((l) => l > 0);
+  const km = (i: number) => Math.round((i + offset) * SAMPLE_KM);
+  return first === last ? `km ${km(first)}` : `km ${km(first)}–${km(last)}`;
+}
+
+const wetKm = (row: number[]) => row.filter((l) => l > 0).length * SAMPLE_KM;
+
+/**
+ * The same question for a whole ride: where on the route is it raining, and is that changing? Once
+ * you're on the route (`fromKm`), only the road ahead counts.
+ */
+export function summarizeRoute(frames: Frame[], fullRoute: number[][], fromKm?: number): Summary {
+  const offset = fromKm === undefined ? 0 : Math.floor(fromKm / SAMPLE_KM);
+  const route = fullRoute.map((row) => row.slice(offset));
+  const where = fromKm === undefined ? "of the route" : "ahead";
+  const now = route[NOW_INDEX];
+  const ahead = route.slice(NOW_INDEX + 1);
+
+  if (wetKm(now) > 0) {
+    const peak = Math.max(...now);
+    const later = wetKm(ahead[ahead.length - 1]);
+    const trend =
+      later === 0 ? ", clearing within the hour" : later > wetKm(now) * 1.3 ? ", spreading" : later < wetKm(now) * 0.7 ? ", easing" : "";
+    return { title: `Rain on ${wetKm(now)} km ${where}`, detail: `${LEVELS[peak].word} at worst, ${stretch(now, offset)}${trend}` };
+  }
+
+  const reaches = ahead.findIndex((row) => wetKm(row) > 0);
+  if (reaches >= 0) {
+    const row = ahead[reaches];
+    return {
+      title: `Rain reaching the route${fromKm === undefined ? "" : " ahead"} in ~${minutes(reaches + 1)} min`,
+      detail: `${LEVELS[Math.max(...row)].word} around ${stretch(row, offset)}, from ${clock(frames[NOW_INDEX + 1 + reaches].time)}`,
+    };
+  }
+
+  const lastWet = route.slice(0, NOW_INDEX).findLastIndex((row) => wetKm(row) > 0);
+  return {
+    title: fromKm === undefined ? "Dry along the whole route" : "Dry on the road ahead",
+    detail: lastWet >= 0 ? `For the next hour; the last rain left around ${clock(frames[lastWet + 1].time)}` : "For the next hour, and the last 90 minutes too",
+  };
 }

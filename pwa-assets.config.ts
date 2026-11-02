@@ -5,7 +5,7 @@ import {
 } from "@vite-pwa/assets-generator/config";
 
 /** Behind the icon's rounded corners, so the platform's own icon mask never shows a sliver of another colour. */
-const ICON_FILL = { background: "#0b0d12", fit: "contain" } as const;
+const ICON_FILL = { background: "#000000", fit: "contain" } as const;
 
 export default defineConfig({
   headLinkOptions: { preset: "2023" },
@@ -18,9 +18,10 @@ export default defineConfig({
     {
       // Launch screens: the icon on the app's own background, light and dark.
       padding: 0.42,
-      resizeOptions: { background: "#0b0d12", fit: "contain" },
+      resizeOptions: { background: "#000000", fit: "contain" },
       darkResizeOptions: { background: "#000000", fit: "contain" },
-      linkMediaOptions: { log: false, addMediaScreen: true, basePath: "/", xhtml: false },
+      // Same base as the app, or the launch screens 404 under /otomo/ on GitHub Pages.
+      linkMediaOptions: { log: false, addMediaScreen: true, basePath: process.env.BASE_PATH ?? "/", xhtml: false },
     },
     [
       "iPhone 17 Pro Max",

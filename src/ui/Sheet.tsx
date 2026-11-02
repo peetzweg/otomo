@@ -1,9 +1,13 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { css, inCoverage, LEVELS, STEP_MS } from "../radar/jma";
-import { NOW_INDEX, radar, seek, togglePlay } from "../radar/radar";
-import { clock, summarize } from "../radar/summary";
+import { NOW_INDEX, radar, seek, selectStage, setCursor, togglePlay } from "../radar/radar";
+import { clock, summarize, summarizeRoute, type Summary } from "../radar/summary";
+import type { Progress } from "../stages/progress";
+import { checkpoints, climbBetween, dayLabel, elevationAt, routeLength, STAGES, stageById, type Stage } from "../stages/stages";
 import { useStore } from "../store";
-import { PauseIcon, PlayIcon } from "./icons";
+import { PauseIcon, PinIcon, PlayIcon } from "./icons";
+import { useDrawer } from "./drawer";
+import { setCollapsed, view } from "./view";
 
 /** The panel over the bottom of the map: what the rain does here, and the timeline to scrub through it. */
 export function Sheet() {
@@ -11,35 +15,230 @@ export function Sheet() {
   const frames = useStore(radar, (s) => s.frames);
   const levels = useStore(radar, (s) => s.levels);
   const place = useStore(radar, (s) => s.place);
+  const stage = stageById(useStore(radar, (s) => s.stage));
+  const route = useStore(radar, (s) => s.route);
+  const progress = useStore(radar, (s) => s.progress);
+  const riding = progress && progress.offM <= ON_ROUTE_M ? progress : undefined;
+  const collapsed = useStore(view, (s) => s.collapsed);
   const sheet = useRef<HTMLElement>(null);
+  const head = useRef<HTMLDivElement>(null);
+  const drawer = useDrawer(sheet, head);
 
-  // Map controls sit just above the sheet, whatever its height.
-  useEffect(() => {
-    const observer = new ResizeObserver(([entry]) =>
-      document.documentElement.style.setProperty("--sheet-height", `${entry.borderBoxSize[0].blockSize}px`),
-    );
-    observer.observe(sheet.current!);
-    return () => observer.disconnect();
-  }, []);
-
-  const where = { gps: "Your location", pin: "Pinned spot", default: "Tokyo Station" }[place.source];
-  const covered = inCoverage(place.lng, place.lat);
-  const summary =
+  const where = stage
+    ? `${dayLabel(stage)} · ${stage.start} start`
+    : { gps: "Your location", pin: "Pinned spot", default: "Tokyo Station" }[place.source];
+  const reading: Summary = { title: "Reading the radar…", detail: " " };
+  const summary: Summary =
     status === "offline"
-      ? { title: "Can't reach the radar", detail: "Check your connection; ameblitz tries again every minute" }
-      : !covered
-        ? { title: "Outside the radar", detail: "JMA's nowcast covers Japan and the seas around it" }
-        : levels && frames.length
-          ? summarize(frames, levels)
-          : { title: "Reading the radar…", detail: " " };
+      ? { title: "Can't reach the radar", detail: "Check your connection; Otomo tries again every minute" }
+      : stage
+        ? route && frames.length
+          ? summarizeRoute(frames, route, riding?.km)
+          : reading
+        : !inCoverage(place.lng, place.lat)
+          ? { title: "Outside the radar", detail: "JMA's nowcast covers Japan and the seas around it" }
+          : levels && frames.length
+            ? summarize(frames, levels)
+            : reading;
 
   return (
-    <section ref={sheet} className="sheet" aria-label="Rain forecast">
-      <p className="sheet-where">{where}</p>
-      <h1 className="sheet-title">{summary.title}</h1>
-      <p className="sheet-detail">{summary.detail}</p>
-      <Timeline />
+    <section ref={sheet} className={`sheet${collapsed ? " collapsed" : ""}`} aria-label="Rain forecast">
+      {/* The head is the handle: drag it, flick it or tap it. Folded, only the head shows. */}
+      <div
+        ref={head}
+        className="sheet-head"
+        role="button"
+        tabIndex={0}
+        aria-expanded={!collapsed}
+        aria-label={collapsed ? "Show details" : "Hide details"}
+        onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setCollapsed(!collapsed))}
+        {...drawer}
+      >
+        <span className="grabber" aria-hidden="true" />
+        <p className="sheet-where">{where}</p>
+        {/* Keyed, so a new answer fades in rather than snapping (see .sheet-title). */}
+        <h1 key={summary.title} className="sheet-title">
+          {summary.title}
+        </h1>
+      </div>
+      <div className="sheet-body" inert={collapsed}>
+        <p className="sheet-detail">{summary.detail}</p>
+        {stage && progress && <ProgressLine stage={stage} progress={progress} />}
+        <StagePicker selected={stage?.id} />
+        {stage && <RouteProfile stage={stage} riding={riding} />}
+        <Timeline />
+      </div>
     </section>
+  );
+}
+
+/** Further from the route than this, you're not riding it (yet). GPS in a valley can be off by 100 m. */
+const ON_ROUTE_M = 400;
+/** Further than this, being off the route isn't worth a line. */
+const NEARBY_M = 30_000;
+
+/** Distances on the komoot track, in the portal's kilometres (what the checkpoints and signs use). */
+const officialKm = (stage: Stage, routeKm: number) => (routeKm * stage.distanceKm) / routeLength(stage);
+
+/** "km 63 · 105 km to go · ↑1,240 m left · CP2 in 53 km" */
+function ProgressLine({ stage, progress }: { stage: Stage; progress: Progress }) {
+  if (progress.offM > ON_ROUTE_M) {
+    if (progress.offM > NEARBY_M) return null;
+    return <p className="sheet-progress">{(progress.offM / 1000).toFixed(1)} km from the route</p>;
+  }
+  const length = routeLength(stage);
+  const done = officialKm(stage, progress.km);
+  const next = checkpoints(stage).find((cp) => cp.routeKm > progress.km);
+  const parts = [
+    `km ${Math.round(done)}`,
+    `${Math.round(stage.distanceKm - done)} km to go`,
+    `↑${climbBetween(stage, progress.km, length).toLocaleString("en-US")} m left`,
+    next && `${next.code} in ${Math.round(next.km - done)} km`,
+  ];
+  return <p className="sheet-progress riding">{parts.filter(Boolean).join(" · ")}</p>;
+}
+
+/** One chip per ride, plus a way back to a single spot. The highlight slides to the chosen one. */
+function StagePicker({ selected }: { selected: string | undefined }) {
+  const row = useRef<HTMLDivElement>(null);
+  const pill = useRef<HTMLSpanElement>(null);
+  const first = useRef(true);
+
+  useLayoutEffect(() => {
+    const chip = row.current!.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!chip) return;
+    const el = pill.current!;
+    // No slide on first paint; only a change of mind is worth showing.
+    el.style.transition = first.current ? "none" : "";
+    el.style.width = `${chip.offsetWidth}px`;
+    el.style.transform = `translateX(${chip.offsetLeft}px)`;
+    first.current = false;
+  });
+
+  return (
+    <div ref={row} className="chips" role="tablist" aria-label="Show rain for">
+      <span ref={pill} className="chips-pill" aria-hidden="true" />
+      <button role="tab" aria-selected={!selected} className="chip" onClick={() => selectStage(undefined)} aria-label="A single spot">
+        <PinIcon />
+      </button>
+      {STAGES.map((stage) => (
+        <button key={stage.id} role="tab" aria-selected={selected === stage.id} className="chip" onClick={() => selectStage(stage.id)}>
+          {stage.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Profile drawing size, in SVG units; it stretches to the card's width. */
+const PROFILE_W = 1000;
+const PROFILE_H = 64;
+/** At least this much height range, so a flat stage looks flat. */
+const MIN_RANGE_M = 300;
+
+/**
+ * The stage's elevation profile, filled with the rain on the route at the frame on the map: scrub the
+ * timeline and the colours move along the climbs.
+ */
+function RouteProfile({ stage, riding }: { stage: Stage; riding: Progress | undefined }) {
+  const row = useStore(radar, (s) => s.route?.[s.index]);
+  const cursorKm = useStore(radar, (s) => s.cursorKm);
+  const chart = useRef<HTMLDivElement>(null);
+  const [from, to] = stage.title.split(" → ");
+  const length = stage.points[stage.points.length - 1][2];
+  const { profile } = stage;
+
+  const low = Math.min(...profile);
+  const high = Math.max(...profile);
+  const range = Math.max(high - low, MIN_RANGE_M);
+  const x = (i: number) => (i / (profile.length - 1)) * PROFILE_W;
+  const y = (m: number) => PROFILE_H - 1 - ((m - low) / range) * (PROFILE_H - 4);
+  const line = profile.map((m, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(m).toFixed(1)}`).join("");
+  // Where on the chart a km falls, as a fraction across and in pixels down.
+  const across = (km: number) => `${(km / length) * 100}%`;
+  const down = (km: number) => `${(y(elevationAt(stage, km)) / PROFILE_H) * 100}%`;
+
+  // Drag along the profile to see where that point is on the map.
+  const point = (clientX: number) => {
+    const rect = chart.current!.getBoundingClientRect();
+    setCursor(Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)) * length);
+  };
+
+  // Runs of equal intensity become hard-edged gradient stops.
+  const stops: { offset: number; color: string }[] = [];
+  if (row) {
+    let start = 0;
+    for (let i = 1; i <= row.length; i++) {
+      if (i < row.length && row[i] === row[start]) continue;
+      const color = row[start] ? css(LEVELS[row[start]].color, 1) : "var(--profile-dry)";
+      stops.push({ offset: start / row.length, color }, { offset: i / row.length, color });
+      start = i;
+    }
+  }
+  const fill = `rain-${stage.id}`;
+  const area = `${line}L${PROFILE_W},${PROFILE_H}L0,${PROFILE_H}Z`;
+
+  return (
+    <div className="profile">
+      <div className="profile-checkpoints">
+        {checkpoints(stage).map((cp) => (
+          <span key={cp.code} style={{ left: `${(cp.routeKm / length) * 100}%` }} title={`${cp.name}, km ${cp.km}`}>
+            {cp.code}
+          </span>
+        ))}
+      </div>
+      <div
+        ref={chart}
+        className="profile-chart"
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          point(e.clientX);
+        }}
+        onPointerMove={(e) => e.currentTarget.hasPointerCapture(e.pointerId) && point(e.clientX)}
+        onPointerUp={() => setCursor(undefined)}
+        onPointerCancel={() => setCursor(undefined)}
+      >
+        <svg viewBox={`0 0 ${PROFILE_W} ${PROFILE_H}`} preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id={fill} gradientUnits="userSpaceOnUse" x1="0" x2={PROFILE_W} y1="0" y2="0">
+              {stops.map((stop, i) => (
+                <stop key={i} offset={stop.offset} style={{ stopColor: stop.color }} />
+              ))}
+            </linearGradient>
+          </defs>
+          <path className={row ? undefined : "loading"} d={area} fill={row ? `url(#${fill})` : "var(--profile-dry)"} />
+          <path d={line} className="profile-line" />
+          {riding && (
+            <>
+              <clipPath id={`done-${stage.id}`}>
+                <rect x={0} y={0} width={(riding.km / length) * PROFILE_W} height={PROFILE_H} />
+              </clipPath>
+              <path className="profile-done" d={area} clipPath={`url(#done-${stage.id})`} />
+            </>
+          )}
+          {checkpoints(stage).map((cp) => (
+            <line key={cp.code} className="profile-checkpoint" x1={(cp.routeKm / length) * PROFILE_W} x2={(cp.routeKm / length) * PROFILE_W} y1={0} y2={PROFILE_H} />
+          ))}
+        </svg>
+        {riding && <span className="profile-rider" style={{ left: across(riding.km), top: down(riding.km) }} />}
+        {cursorKm !== undefined && (
+          <>
+            <span className="profile-cursor" style={{ left: across(cursorKm) }} />
+            <span className="profile-cursor-dot" style={{ left: across(cursorKm), top: down(cursorKm) }} />
+            <span className="profile-cursor-label" style={{ left: `clamp(48px, ${across(cursorKm)}, calc(100% - 48px))` }}>
+              km {Math.round(officialKm(stage, cursorKm))} · {elevationAt(stage, cursorKm).toLocaleString("en-US")} m
+            </span>
+          </>
+        )}
+      </div>
+      <div className="profile-labels">
+        <span>{from}</span>
+        <span>
+          {stage.distanceKm} km · ↑{stage.climbM.toLocaleString("en-US")} m · top {high.toLocaleString("en-US")} m
+        </span>
+        <span>{to}</span>
+      </div>
+    </div>
   );
 }
 
@@ -49,11 +248,28 @@ function relative(index: number) {
   return minutes < 0 ? `${-minutes} min ago` : `in ${minutes} min`;
 }
 
+/** What each frame's bar shows: the rain at the spot, or for a stage, how much of it is wet and how hard. */
+function useBars() {
+  const stage = useStore(radar, (s) => s.stage);
+  const levels = useStore(radar, (s) => s.levels);
+  const route = useStore(radar, (s) => s.route);
+  const frames = useStore(radar, (s) => s.frames);
+  return frames.map((_, i) => {
+    if (!stage) {
+      const level = levels?.[i] ?? 0;
+      return { level, fill: level / 8 };
+    }
+    const row = route?.[i] ?? [];
+    const wet = row.filter((l) => l > 0).length;
+    return { level: wet ? Math.max(...row) : 0, fill: wet / Math.max(1, row.length) };
+  });
+}
+
 function Timeline() {
   const frames = useStore(radar, (s) => s.frames);
   const index = useStore(radar, (s) => s.index);
-  const levels = useStore(radar, (s) => s.levels);
   const playing = useStore(radar, (s) => s.playing);
+  const bars = useBars();
   const track = useRef<HTMLDivElement>(null);
   const count = frames.length;
 
@@ -102,12 +318,12 @@ function Timeline() {
         <div className="track-forecast" style={{ left: `${(NOW_INDEX / Math.max(1, count - 1)) * 100}%` }} />
         <div className="bars">
           {frames.map((f, i) => {
-            const level = levels?.[i] ?? 0;
+            const { level, fill } = bars[i];
             return (
               <span
                 key={f.id}
                 className={`bar${level ? "" : " dry"}${i === index ? " current" : ""}`}
-                style={level ? { height: `${18 + (level / 8) * 82}%`, background: css(LEVELS[level].color, 1) } : undefined}
+                style={level ? { height: `${18 + fill * 82}%`, background: css(LEVELS[level].color, 1) } : undefined}
               />
             );
           })}

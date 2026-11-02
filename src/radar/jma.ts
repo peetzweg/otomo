@@ -218,7 +218,7 @@ export async function radarTile(url: string, signal: AbortSignal): Promise<Array
 
 /* ---------- Rain at a point ---------- */
 
-/** z10 tiles are about 125 m a pixel over Japan, finer than the data, so one pixel is one cell. */
+/** z10 tiles are about 125 m a pixel over Japan, finer than the data, so one pixel is one cell. (Tiles only exist at even zooms.) */
 const SAMPLE_ZOOM = 10;
 const decoded = new Map<string, Promise<ImageData | undefined>>();
 
@@ -237,7 +237,7 @@ async function pixels(url: string) {
     })().catch(() => undefined);
     decoded.set(url, pending);
     // Frames leave the timeline as time moves on; so should their pixels.
-    if (decoded.size > 400) decoded.delete(decoded.keys().next().value!);
+    if (decoded.size > 800) decoded.delete(decoded.keys().next().value!);
   }
   return pending;
 }
@@ -246,19 +246,40 @@ export const inCoverage = (lng: number, lat: number) =>
   lng >= COVERAGE[0] && lng <= COVERAGE[2] && lat >= COVERAGE[1] && lat <= COVERAGE[3];
 
 /** The intensity class at a place, per frame. A frame that couldn't be read counts as dry. */
+/** The intensity class at a place, per frame. A frame that couldn't be read counts as dry. */
 export async function levelsAt(frames: Frame[], lng: number, lat: number): Promise<number[]> {
-  const scale = 2 ** SAMPLE_ZOOM;
-  const worldX = ((lng + 180) / 360) * scale;
-  const sin = Math.sin((lat * Math.PI) / 180);
-  const worldY = (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale;
-  const [x, y] = [Math.floor(worldX), Math.floor(worldY)];
-  const [px, py] = [Math.floor((worldX - x) * 256), Math.floor((worldY - y) * 256)];
+  return (await levelsAlong(frames, [[lng, lat]])).map(([level]) => level);
+}
+
+/**
+ * The intensity class at many places, per frame: `result[frame][place]`. Reading a long route at
+ * z10 would mean dozens of tiles a frame; `zoom` 8 (about 500 m a pixel) covers a day's ride in a few.
+ */
+export async function levelsAlong(frames: Frame[], places: [number, number][], zoom = SAMPLE_ZOOM): Promise<number[][]> {
+  const scale = 2 ** zoom;
+  const cells = places.map(([lng, lat]) => {
+    const worldX = ((lng + 180) / 360) * scale;
+    const sin = Math.sin((lat * Math.PI) / 180);
+    const worldY = (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale;
+    const [x, y] = [Math.floor(worldX), Math.floor(worldY)];
+    return { x, y, px: Math.floor((worldX - x) * 256), py: Math.floor((worldY - y) * 256) };
+  });
   return Promise.all(
     frames.map(async (f) => {
-      const image = await pixels(tileUrl(f, SAMPLE_ZOOM, x, y));
-      if (!image) return 0;
-      const i = (py * image.width + px) * 4;
-      return levelOf(image.data[i], image.data[i + 1], image.data[i + 2], image.data[i + 3]);
+      const tiles = new Map<string, Promise<ImageData | undefined>>();
+      const images = await Promise.all(
+        cells.map(({ x, y }) => {
+          const url = tileUrl(f, zoom, x, y);
+          if (!tiles.has(url)) tiles.set(url, pixels(url));
+          return tiles.get(url)!;
+        }),
+      );
+      return cells.map(({ px, py }, i) => {
+        const image = images[i];
+        if (!image) return 0;
+        const at = (py * image.width + px) * 4;
+        return levelOf(image.data[at], image.data[at + 1], image.data[at + 2], image.data[at + 3]);
+      });
     }),
   );
 }

@@ -1,0 +1,47 @@
+<!doctype html>
+<!-- The social card (1200×630), screenshotted into public/og.png by render.sh. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      * { margin: 0; box-sizing: border-box; }
+      html, body { width: 1200px; height: 630px; overflow: hidden; }
+      body {
+        background: #000;
+        color: #fff;
+        font-family: "Avenir Next", "Helvetica Neue", system-ui, sans-serif;
+        position: relative;
+      }
+      /* The race's bold, tracked caps; the companion's soft, round face. */
+      .event {
+        position: absolute; top: 64px; left: 72px;
+        font-family: "Avenir Next Condensed", "Avenir Next", sans-serif;
+        font-size: 30px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+      }
+      .event span { color: rgb(255 255 255 / 0.45); }
+      .mascot { position: absolute; right: 56px; top: 108px; width: 430px; height: 430px; }
+      .name {
+        position: absolute; left: 64px; top: 128px;
+        font-family: "Avenir Next Condensed", "Avenir Next", sans-serif;
+        font-size: 188px; font-weight: 800; letter-spacing: -0.01em; line-height: 1;
+      }
+      .meaning { position: absolute; left: 72px; top: 326px; font-size: 30px; font-weight: 600; color: rgb(255 255 255 / 0.6); }
+      .meaning i { font-style: normal; font-family: "Hiragino Maru Gothic ProN", "Hiragino Sans", sans-serif; font-weight: 700; color: #ff8fb5; margin-right: 10px; }
+      .tagline { position: absolute; left: 72px; top: 392px; width: 600px; font-size: 32px; font-weight: 600; line-height: 1.28; color: #fff; }
+      .chips { position: absolute; left: 72px; bottom: 60px; display: flex; gap: 12px; }
+      .chips span {
+        font-size: 22px; font-weight: 700; padding: 10px 20px; border-radius: 999px;
+        border: 2px solid rgb(255 255 255 / 0.28); color: #fff;
+      }
+      .chips span.pink { background: #ff8fb5; border-color: #ff8fb5; color: #000; }
+    </style>
+  </head>
+  <body>
+    <div class="event">Rad Race · Tour de Friends <span>Japan 2026</span></div>
+    <div class="name">OTOMO</div>
+    <p class="meaning"><i>お供</i>the companion you bring along</p>
+    <p class="tagline">Rain radar along every stage, the climbs, and where you are.</p>
+    <div class="chips"><span class="pink">uwu</span><span>4 stages</span><span>Kyushu</span><span>JMA radar, 250 m</span></div>
+    <img class="mascot" src="../../public/favicon.svg" alt="" />
+  </body>
+</html>

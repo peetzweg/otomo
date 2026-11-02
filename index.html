@@ -5,18 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f5f7" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0d12" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <!-- The map runs under the status bar, so its text has to stay readable on both themes. -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="ameblitz" />
-    <meta name="application-name" content="ameblitz" />
-    <title>ameblitz · Rain radar for Japan</title>
+    <meta name="apple-mobile-web-app-title" content="Otomo" />
+    <meta name="application-name" content="Otomo" />
+    <title>Otomo お供 · Tour de Friends Japan companion</title>
     <meta
       name="description"
-      content="Where it's raining in Japan now, and where it will rain in the next hour. 250 m radar from the Japan Meteorological Agency, every 5 minutes."
+      content="The companion app for Rad Race Tour de Friends Japan: rain radar along every stage, the climbs, and where you are. 250 m radar from the Japan Meteorological Agency, every 5 minutes."
     />
+
+    <!-- Link previews. %SITE_URL% is the deployed origin, filled in at build (vite.config.ts). -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Otomo" />
+    <meta property="og:title" content="Otomo お供 · Tour de Friends Japan" />
+    <meta property="og:description" content="Rain radar along every stage, the climbs, and where you are." />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta property="og:image" content="%SITE_URL%/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A white rain cloud with an uwu face next to the word OTOMO, on black." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Otomo お供 · Tour de Friends Japan" />
+    <meta name="twitter:description" content="Rain radar along every stage, the climbs, and where you are." />
+    <meta name="twitter:image" content="%SITE_URL%/og.png" />
   </head>
   <body>
     <div id="root"></div>

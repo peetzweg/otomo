@@ -21,7 +21,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b0d12;
+    --bg: #000000;
     --label: #f5f6fa;
     --label-2: rgba(235, 238, 250, 0.62);
     --label-3: rgba(235, 238, 250, 0.3);
@@ -422,4 +422,630 @@ button {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ---------- Stages ---------- */
+
+:root {
+  --profile-dry: rgba(20, 24, 33, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --profile-dry: rgba(255, 255, 255, 0.14);
+  }
+}
+
+.place-dot.hidden {
+  display: none;
+}
+
+/* One row that always fits: the spot button, then the stages sharing the rest equally. */
+.chips {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+/* The selected chip's background, as its own element so it can slide between chips. */
+.chips-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 32px;
+  border-radius: 16px;
+  background: var(--label);
+  transition:
+    transform 280ms var(--ease-out),
+    width 280ms var(--ease-out);
+}
+
+.chip {
+  /* Positioned, so it paints above the sliding pill. */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 16px;
+  background: var(--fill);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  color: var(--label-2);
+  transition:
+    background 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+.chip:active {
+  transform: scale(0.94);
+}
+
+.chip[aria-selected="true"] {
+  background: transparent;
+  color: var(--bg);
+}
+
+.profile {
+  margin-top: 10px;
+}
+
+.profile-checkpoints {
+  position: relative;
+  height: 14px;
+}
+
+.profile-checkpoints span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--label-2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-chart {
+  position: relative;
+}
+
+.profile-chart svg {
+  display: block;
+  width: 100%;
+  height: 64px;
+}
+
+.profile-line {
+  fill: none;
+  stroke: var(--label-2);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+}
+
+.profile-checkpoint {
+  stroke: var(--label);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.profile-chart .loading {
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+
+.profile-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--label-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-labels span:first-child,
+.profile-labels span:last-child {
+  color: var(--label-2);
+  font-weight: 600;
+}
+
+.checkpoint {
+  padding: 3px 7px;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0b0d12;
+  font: 700 11px/1 var(--sans);
+  letter-spacing: 0.03em;
+  box-shadow: 0 0 0 2px #0b0d12, 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- Riding ---------- */
+
+.sheet-progress {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet-progress.riding {
+  color: #2f8bff;
+}
+
+.profile-chart {
+  touch-action: none;
+  cursor: ew-resize;
+}
+
+/* What's been ridden fades back, so the eye goes to what's left. */
+.profile-done {
+  fill: var(--bg);
+  opacity: 0.55;
+}
+
+.profile-rider,
+.profile-cursor-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.profile-rider {
+  background: #2f8bff;
+  box-shadow: 0 0 0 2.5px #fff;
+}
+
+.profile-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--label);
+  pointer-events: none;
+}
+
+.profile-cursor-dot {
+  background: var(--label);
+  box-shadow: 0 0 0 2.5px var(--bg);
+}
+
+/* Over the checkpoint labels while scrubbing; they are back when you let go. */
+.profile-cursor-label {
+  position: absolute;
+  top: -19px;
+  transform: translateX(-50%);
+  padding: 2px 7px;
+  border-radius: 8px;
+  background: var(--label);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.map-cursor {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px #0b0d12, 0 3px 10px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.map-cursor-label {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #0b0d12;
+  font: 700 12px/1.2 var(--sans);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px #0b0d12;
+}
+
+/* ---------- Drawer ---------- */
+
+.sheet {
+  will-change: transform;
+}
+
+/* The handle: everything above the details. Vertical drags are the sheet's, not the page's. */
+.sheet-head {
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.sheet-head:active {
+  cursor: grabbing;
+}
+
+.grabber {
+  display: block;
+  width: 36px;
+  height: 5px;
+  margin: -6px auto 9px;
+  border-radius: 3px;
+  background: var(--label-3);
+  transition: background 160ms ease;
+}
+
+.sheet-head:active .grabber,
+.sheet-head:focus-visible .grabber {
+  background: var(--label-2);
+}
+
+/* A new answer fades in with a touch of blur, so the swap reads as one change, not two texts. */
+.sheet-title {
+  transition:
+    opacity 240ms var(--ease-out),
+    filter 240ms var(--ease-out),
+    transform 240ms var(--ease-out);
+}
+
+@starting-style {
+  .sheet-title {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translateY(3px);
+  }
+}
+
+/* Folded, the details sit below the screen edge; fading them keeps the edge clean while settling. */
+.sheet-body {
+  transition: opacity 240ms var(--ease-out);
+}
+
+.sheet.collapsed .sheet-body {
+  opacity: 0;
+}
+
+/* ---------- Map style picker ---------- */
+
+.layers {
+  width: 280px;
+}
+
+.layers-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.layers-option {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--label-2);
+}
+
+.layers-option[aria-checked="true"] {
+  color: var(--label);
+}
+
+.layers-swatch {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--fill);
+}
+
+.layers-option[aria-checked="true"] .layers-swatch {
+  box-shadow: 0 0 0 2.5px var(--accent);
+}
+
+.layers-map .layers-swatch {
+  background: linear-gradient(135deg, #1b1e27 0 45%, #2a2e3a 45% 55%, #1b1e27 55%);
+}
+
+.layers-terrain .layers-swatch {
+  background: radial-gradient(circle at 30% 30%, #4a4f5e, #15171d 70%);
+}
+
+.layers-topo .layers-swatch {
+  background: repeating-radial-gradient(circle at 60% 60%, #f3f1ea 0 5px, #c9b98f 5px 6px);
+}
+
+.layers-satellite .layers-swatch {
+  background: radial-gradient(circle at 70% 30%, #6b7d4c, #2f3d24 55%, #1d2a3a);
+}
+
+/* ---------- Brand ---------- */
+
+.pill.brand {
+  padding-left: 8px;
+}
+
+.brand-mascot {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  align-self: center;
+}
+
+/* ---------- Install hint ---------- */
+
+.install {
+  position: fixed;
+  top: calc(var(--safe-top) + 64px);
+  left: 12px;
+  right: 12px;
+  max-width: 420px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px 12px 12px;
+  border-radius: 20px;
+  background: var(--material);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
+  box-shadow: var(--shadow), inset 0 0.5px 0 var(--material-edge);
+  transition:
+    opacity 300ms var(--ease-out),
+    transform 300ms var(--ease-out);
+}
+
+@starting-style {
+  .install {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+
+.install-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  flex: none;
+}
+
+.install-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.install-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.install-text {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--label-2);
+}
+
+.inline-icon {
+  vertical-align: -2px;
+  color: #2f8bff;
+}
+
+.install-button {
+  flex: none;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: var(--label);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 700;
+  transition: transform 160ms var(--ease-out);
+}
+
+.install-button:active,
+.install-close:active {
+  transform: scale(0.94);
+}
+
+.install-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--label-2);
+  transition: transform 160ms var(--ease-out);
+}
+
+/* ---------- Welcome ---------- */
+
+.welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  transition: background 260ms var(--ease-out);
+}
+
+@starting-style {
+  .welcome {
+    background: rgba(0, 0, 0, 0);
+  }
+}
+
+.welcome-sheet {
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100% - var(--safe-top) - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0 8px calc(var(--safe-bottom) + 8px);
+  padding: 26px 24px 18px;
+  border-radius: 32px;
+  background: #000;
+  color: #fff;
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.14), 0 -20px 60px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  /* Enters like a sheet: from below, on the iOS drawer curve. */
+  transition: transform 520ms var(--ease-sheet);
+}
+
+@starting-style {
+  .welcome-sheet {
+    transform: translateY(110%);
+  }
+}
+
+/* Leaving is quicker than arriving: the rider has decided, the app just gets out of the way. */
+.welcome.leaving {
+  background: rgba(0, 0, 0, 0);
+}
+
+.welcome.leaving .welcome-sheet {
+  transform: translateY(110%);
+  transition: transform 280ms var(--ease-out);
+}
+
+.welcome-mascot {
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  animation: float 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes float {
+  from {
+    transform: translateY(2px) rotate(-2deg);
+  }
+  to {
+    transform: translateY(-4px) rotate(2deg);
+  }
+}
+
+.welcome-event {
+  margin: 12px 0 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.welcome-name {
+  margin: 4px 0 0;
+  font: 800 44px/1.1 "Hiragino Maru Gothic ProN", "Hiragino Sans", var(--rounded);
+}
+
+.welcome-name span {
+  font: 800 30px/1 var(--rounded);
+  letter-spacing: 0.02em;
+  color: #ff8fb5;
+}
+
+.welcome-meaning {
+  margin: 10px auto 0;
+  max-width: 400px;
+  font-size: 16px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.welcome-meaning b {
+  color: #fff;
+}
+
+.welcome-features {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+/* Each line arrives a beat after the one above it, once the sheet has mostly settled. */
+.welcome-features li {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 14px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.68);
+  transition:
+    opacity 360ms var(--ease-out) calc(220ms + var(--i) * 60ms),
+    transform 360ms var(--ease-out) calc(220ms + var(--i) * 60ms);
+}
+
+@starting-style {
+  .welcome-features li {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.welcome-features b {
+  font-size: 15px;
+  color: #fff;
+}
+
+.welcome-wish {
+  margin: 18px auto 0;
+  max-width: 400px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.welcome-go {
+  display: block;
+  width: 100%;
+  height: 54px;
+  margin-top: 18px;
+  border-radius: 27px;
+  background: #fff;
+  color: #000;
+  font: 800 18px/1 "Hiragino Maru Gothic ProN", "Hiragino Sans", var(--rounded);
+  transition: transform 160ms var(--ease-out);
+}
+
+.welcome-go span {
+  font-family: var(--rounded);
+  font-weight: 700;
+  opacity: 0.55;
+  margin-left: 4px;
+}
+
+.welcome-go:active {
+  transform: scale(0.97);
+}
+
+.welcome-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
 }
