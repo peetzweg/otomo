@@ -1,13 +1,8 @@
 /**
- * Temperature and wind for a stage, from two sources that both allow browser requests:
- *
- * - Forecasts from Open-Meteo, which for Japan runs on JMA's own models, corrected for each point's
- *   altitude: what to expect at the start, the checkpoints, the top and the finish, at the hour you get
- *   there.
- * - Measurements from JMA's AMeDAS stations (アメダス, ~1,300 of them, every 10 minutes): what the
- *   stations along the route read right now.
+ * Temperature and wind for a stage, from Open-Meteo (browser requests allowed), which for Japan runs on
+ * JMA's own models, corrected for each point's altitude: what to expect at the start, the checkpoints,
+ * the top and the finish, at the hour you get there.
  */
-import { progressOn } from "./progress";
 import { checkpoints, elevationAt, PROFILE_KM, routeLength, type Stage } from "./stages";
 
 export interface Waypoint {
@@ -146,103 +141,4 @@ export function describe(code: number): { icon: string; word: string } {
   if (code <= 82) return { icon: "🌧️", word: "Showers" };
   if (code <= 86) return { icon: "🌨️", word: "Snow showers" };
   return { icon: "⛈️", word: "Thunderstorm" };
-}
-
-/* ---------- AMeDAS stations ---------- */
-
-const AMEDAS = "https://www.jma.go.jp/bosai/amedas";
-/** Stations further from the route than this aren't "along the way". */
-const NEAR_ROUTE_M = 10_000;
-
-export interface StationReading {
-  id: string;
-  name: string;
-  /** Japanese name, as on the station. */
-  nameJa: string;
-  routeKm: number;
-  offM: number;
-  elevation: number;
-  temperature: number | undefined;
-  wind: number | undefined;
-  /** mm in the last hour. */
-  rain1h: number | undefined;
-}
-
-interface AmedasStation {
-  lat: [number, number];
-  lon: [number, number];
-  alt: number;
-  kjName: string;
-  enName: string;
-}
-
-/** A reading is [value, quality flag]; anything but flag 0 is missing or doubtful. */
-type Reading = [number | null, number] | undefined;
-const value = (r: Reading) => (r && r[1] === 0 && r[0] !== null ? r[0] : undefined);
-
-let table: Promise<Record<string, AmedasStation>> | undefined;
-const nearby = new Map<string, Promise<{ id: string; station: AmedasStation; routeKm: number; offM: number }[]>>();
-let latest: { at: number; data: Promise<{ time: string; readings: Record<string, Record<string, Reading>> }> } | undefined;
-/** Stations report every 10 minutes. */
-const READINGS_TTL_MS = 5 * 60_000;
-
-function stationsNear(stage: Stage) {
-  let pending = nearby.get(stage.id);
-  if (!pending) {
-    table ??= fetch(`${AMEDAS}/const/amedastable.json`).then((r) => r.json());
-    const lngs = stage.points.map((p) => p[0]);
-    const lats = stage.points.map((p) => p[1]);
-    // A cheap box first (about 11 km of slack), then the real distance to the route.
-    const [west, east, south, north] = [Math.min(...lngs) - 0.12, Math.max(...lngs) + 0.12, Math.min(...lats) - 0.1, Math.max(...lats) + 0.1];
-    pending = table.then((all) =>
-      Object.entries(all)
-        .map(([id, station]) => ({ id, station, lng: station.lon[0] + station.lon[1] / 60, lat: station.lat[0] + station.lat[1] / 60 }))
-        .filter((s) => s.lng >= west && s.lng <= east && s.lat >= south && s.lat <= north)
-        .map((s) => ({ id: s.id, station: s.station, ...progressOn(stage, s.lng, s.lat) }))
-        .filter((s) => s.offM <= NEAR_ROUTE_M)
-        .map(({ id, station, km, offM }) => ({ id, station, routeKm: km, offM }))
-        .sort((a, b) => a.routeKm - b.routeKm),
-    );
-    pending.catch(() => nearby.delete(stage.id));
-    nearby.set(stage.id, pending);
-  }
-  return pending;
-}
-
-function latestReadings() {
-  if (!latest || Date.now() - latest.at > READINGS_TTL_MS) {
-    const data = fetch(`${AMEDAS}/data/latest_time.txt`)
-      .then((r) => r.text())
-      .then(async (iso) => {
-        // "2026-11-02T21:00:00+09:00" → the map file for that moment, named in JST.
-        const stamp = iso.trim().slice(0, 19).replace(/\D/g, "");
-        const readings = await fetch(`${AMEDAS}/data/map/${stamp}.json`).then((r) => r.json());
-        return { time: iso.trim().slice(11, 16), readings };
-      });
-    data.catch(() => (latest = undefined));
-    latest = { at: Date.now(), data };
-  }
-  return latest.data;
-}
-
-/** The stations within a few km of the route, in route order, with what they measure now. */
-export async function stationsAlong(stage: Stage): Promise<{ time: string; stations: StationReading[] }> {
-  const [near, { time, readings }] = await Promise.all([stationsNear(stage), latestReadings()]);
-  return {
-    time,
-    stations: near.map(({ id, station, routeKm, offM }) => {
-      const r = readings[id] ?? {};
-      return {
-        id,
-        name: station.enName,
-        nameJa: station.kjName,
-        routeKm,
-        offM,
-        elevation: station.alt,
-        temperature: value(r.temp),
-        wind: value(r.wind),
-        rain1h: value(r.precipitation1h),
-      };
-    }),
-  };
 }
