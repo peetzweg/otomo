@@ -83,4 +83,7 @@ pnpm dev
 scripts/og/render.sh   # the share image, public/og.png
 ```
 
-Pushing to `main` deploys to GitHub Pages.
+Pushing to `main` deploys to GitHub Pages. Installed apps pick up a new version on their own: they
+look for one on launch, hourly, and when brought back after 10+ minutes away, and swap it in at a
+moment that feels like opening the app (see [src/pwa.ts](src/pwa.ts)). Long-press the otomo pill to
+see which version a phone runs.

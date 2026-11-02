@@ -53,26 +53,52 @@ export function dismissInstallHint() {
   pwa.set({ hintDismissed: true });
 }
 
-/** How long after a fresh start a found update may still reload the app, if you haven't touched it yet. */
-const LAUNCH_WINDOW_MS = 15_000;
-const launchedAt = performance.now();
-let touched = false;
-for (const type of ["pointerdown", "keydown"]) {
-  window.addEventListener(type, () => (touched = true), { capture: true, once: true });
-}
-
-/**
- * As in bookblitz: an update is swapped in only right after a fresh start, before you've touched
- * anything. Otherwise it waits for the next time the system restarts the app.
+/*
+ * Updates. Most people never really quit a Home Screen app, so waiting for a fresh start isn't enough;
+ * coming back after a while counts as one too. The rule: a new version is swapped in only at a moment
+ * that already feels like the app (re)opening, never under your finger.
+ *
+ * - Look for one on launch, every hour while open, and on coming back after AWAY_MS or more.
+ * - Swap it in on coming back after AWAY_MS, before you've touched anything; or, if it only turns up in
+ *   the first SETTLE_MS of a (re)start, as long as you still haven't. Otherwise it waits for the next.
+ * - A force quit still does it too: the next launch starts on the new version.
  */
+
+/** Away this long (in the background, screen off), coming back is treated like opening the app. */
+const AWAY_MS = 10 * 60_000;
+/** How long after a (re)start a found update may still reload the app, if you haven't touched it. */
+const SETTLE_MS = 15_000;
+const CHECK_EVERY_MS = 60 * 60_000;
+
+let startedAt = performance.now();
+let touched = false;
+let ready = false;
+let hiddenAt: number | undefined;
+for (const type of ["pointerdown", "keydown"]) {
+  window.addEventListener(type, () => (touched = true), { capture: true });
+}
+const settling = () => !touched && performance.now() - startedAt < SETTLE_MS;
+
 const updateServiceWorker = registerSW({
   onNeedRefresh() {
-    if (performance.now() - launchedAt < LAUNCH_WINDOW_MS && !touched) updateServiceWorker(true);
+    ready = true;
+    if (settling()) updateServiceWorker(true);
   },
   onRegisteredSW(_url, registration) {
     if (!registration) return;
+    const check = () => navigator.onLine && registration.update().catch(() => {});
+    setInterval(check, CHECK_EVERY_MS);
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible" && navigator.onLine) registration.update().catch(() => {});
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        return;
+      }
+      if (hiddenAt === undefined || Date.now() - hiddenAt < AWAY_MS) return;
+      // Back after a while: as good as a fresh start.
+      startedAt = performance.now();
+      touched = false;
+      if (ready) updateServiceWorker(true);
+      else check();
     });
   },
 });
