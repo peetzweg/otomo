@@ -6,7 +6,7 @@ import type { Progress } from "../stages/progress";
 import { checkpoints, climbBetween, dayLabel, elevationAt, routeLength, STAGES, stageById, type Stage } from "../stages/stages";
 import { describe } from "../stages/weather";
 import { useStore } from "../store";
-import { PauseIcon, PinIcon, PlayIcon } from "./icons";
+import { PauseIcon, PlayIcon, SunIcon } from "./icons";
 import { useDrawer } from "./drawer";
 import { StageWeather, useStageWeather, type StageWeatherData } from "./StageWeather";
 import { setSnap, view } from "./view";
@@ -30,6 +30,15 @@ export function Sheet() {
   // Only a stage has more to show when pulled all the way up.
   const drawer = useDrawer({ sheet, head, body, halfEnd }, !!stage);
   const weather = useStageWeather(stage);
+
+  /** The sun: pull the sheet up and bring the weather to the top, or put it back. */
+  const toggleWeather = () => {
+    if (snap === "full") return setSnap("half");
+    setSnap("full");
+    const scroller = body.current!;
+    const section = scroller.querySelector<HTMLElement>(".wx");
+    if (section) scroller.scrollTo({ top: section.offsetTop - scroller.offsetTop - 8, behavior: "smooth" });
+  };
 
   const where = stage
     ? `${dayLabel(stage)} · ${stage.start} start`
@@ -72,19 +81,12 @@ export function Sheet() {
         <div>
           <p className="sheet-detail">{summary.detail}</p>
           {stage && progress && <ProgressLine stage={stage} progress={progress} />}
-          <StagePicker selected={stage?.id} />
+          <StagePicker selected={stage?.id} weatherOpen={snap === "full"} onWeather={toggleWeather} />
           {stage && <RouteProfile stage={stage} riding={riding} weather={weather} />}
           <Timeline />
           <div ref={halfEnd} />
           {stage && (
             <>
-              {/* The way up to the rest, for anyone who doesn't think to pull. */}
-              <button className="sheet-more" onClick={() => setSnap(snap === "full" ? "half" : "full")} aria-expanded={snap === "full"}>
-                {snap === "full" ? "Less" : "Weather along the route"}
-                <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
-                  <path d="M2.5 7.5 6 4l3.5 3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
               <StageWeather stage={stage} data={weather} />
             </>
           )}
@@ -131,8 +133,11 @@ function ProgressLine({ stage, progress }: { stage: Stage; progress: Progress })
   return <p className="sheet-progress riding">{parts.filter(Boolean).join(" · ")}</p>;
 }
 
-/** One chip per ride, plus a way back to a single spot. The highlight slides to the chosen one. */
-function StagePicker({ selected }: { selected: string | undefined }) {
+/**
+ * One chip per stage, the highlight sliding to the chosen one, and the sun: the way to the weather
+ * along the route, for anyone who wouldn't think to pull the sheet up.
+ */
+function StagePicker({ selected, weatherOpen, onWeather }: { selected: string | undefined; weatherOpen: boolean; onWeather: () => void }) {
   const row = useRef<HTMLDivElement>(null);
   const pill = useRef<HTMLSpanElement>(null);
   const first = useRef(true);
@@ -149,16 +154,24 @@ function StagePicker({ selected }: { selected: string | undefined }) {
   });
 
   return (
-    <div ref={row} className="chips" role="tablist" aria-label="Show rain for">
+    <div ref={row} className="chips">
       <span ref={pill} className="chips-pill" aria-hidden="true" />
-      <button role="tab" aria-selected={!selected} className="chip" onClick={() => selectStage(undefined)} aria-label="A single spot">
-        <PinIcon />
+      <button
+        className="chip sun"
+        aria-pressed={weatherOpen}
+        aria-label="Weather along the route"
+        disabled={!selected}
+        onClick={onWeather}
+      >
+        <SunIcon />
       </button>
-      {STAGES.map((stage) => (
-        <button key={stage.id} role="tab" aria-selected={selected === stage.id} className="chip" onClick={() => selectStage(stage.id)}>
-          {stage.name}
-        </button>
-      ))}
+      <div className="chips-tabs" role="tablist" aria-label="Stage">
+        {STAGES.map((stage) => (
+          <button key={stage.id} role="tab" aria-selected={selected === stage.id} className="chip" onClick={() => selectStage(stage.id)}>
+            {stage.name}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

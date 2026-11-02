@@ -45,14 +45,14 @@ dem.setupMaplibre({ addProtocol });
 const CONTOURS = { 8: [200, 1000], 10: [100, 500], 11: [50, 250], 12: [20, 100], 14: [10, 50] };
 
 /**
- * Puts the chosen base under the radar. Terrain shades the map's own fills; topo adds contour lines on
- * top of that; satellite swaps the map for GSI's (国土地理院) aerial photos, keeping its place names.
+ * Puts the chosen base under the radar. Topo shades the map's own fills and adds contour lines;
+ * satellite swaps the map for GSI's (国土地理院) aerial photos, keeping its place names.
  */
 function applyBase(map: MapLibre, base: Base) {
   const layers = map.getStyle().layers;
   // Over the land and water fills, under the roads and names.
   const belowRoads = layers.find((l) => l.type === "line" || l.type === "symbol")?.id;
-  if (base === "terrain" || base === "topo") {
+  if (base === "topo") {
     map.addSource("base-dem", { type: "raster-dem", tiles: [dem.sharedDemProtocolUrl], encoding: "terrarium", tileSize: 256, maxzoom: 13, attribution: TERRAIN_TILES });
     map.addLayer(
       {
@@ -60,7 +60,7 @@ function applyBase(map: MapLibre, base: Base) {
         type: "hillshade",
         source: "base-dem",
         paint: {
-          "hillshade-exaggeration": base === "topo" ? 0.4 : 0.6,
+          "hillshade-exaggeration": 0.45,
           "hillshade-shadow-color": dark.matches ? "#000000" : "#4b5263",
           "hillshade-highlight-color": dark.matches ? "rgba(255, 255, 255, 0.18)" : "#ffffff",
           "hillshade-accent-color": dark.matches ? "#000000" : "#4b5263",

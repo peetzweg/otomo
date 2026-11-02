@@ -8,7 +8,8 @@ const FEATURES = [
   },
   { title: "Know the climbs", text: "Drag along the elevation profile and a marker shows where that top or valley is on the map." },
   { title: "Where you are", text: "Tap the arrow: your km, what's left to climb, and the next checkpoint." },
-  { title: "Map, terrain, topo, satellite", text: "Switch under the layers button, whatever helps you read the road." },
+  { title: "Weather along the route", text: "Tap the sun: the forecast at the start, the checkpoints, the top and the finish, for when you'll be there." },
+  { title: "Map, topo, satellite", text: "Switch under the layers button, whatever helps you read the road." },
 ];
 
 /**

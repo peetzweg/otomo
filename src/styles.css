@@ -493,15 +493,20 @@ button {
   display: none;
 }
 
-/* One row that always fits: the spot button, then the stages sharing the rest equally. */
+/* One row that always fits: the sun, then the stages sharing the rest equally. */
 .chips {
   position: relative;
   display: grid;
-  grid-template-columns: auto;
+  grid-template-columns: auto 1fr;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.chips-tabs {
+  display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: 6px;
-  margin-top: 12px;
 }
 
 /* The selected chip's background, as its own element so it can slide between chips. */
@@ -1124,30 +1129,6 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
-.sheet-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  height: 40px;
-  margin-top: 4px;
-  border-radius: 20px;
-  background: var(--fill);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--label-2);
-  transition: transform 160ms var(--ease-out);
-}
-
-.sheet-more:active {
-  transform: scale(0.98);
-}
-
-.sheet.full .sheet-more svg {
-  transform: rotate(180deg);
-}
-
 .wx {
   margin-top: 18px;
 }
@@ -1201,11 +1182,14 @@ button {
   min-width: 0;
 }
 
+/* Venue names are long ("Yoshimuta-kogen Midori-no-Mura"); two lines, then an ellipsis. */
 .wx-place b {
   font-size: 14px;
-  white-space: nowrap;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .wx-ja {
@@ -1300,4 +1284,18 @@ button {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* The sun: warm when the weather is open, so it reads as "on". */
+.chip.sun {
+  color: #f5b301;
+}
+
+.chip.sun[aria-pressed="true"] {
+  background: #ffcf3f;
+  color: #3a2a00;
+}
+
+.chip.sun:disabled {
+  opacity: 0.35;
 }

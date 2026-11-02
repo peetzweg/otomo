@@ -81,7 +81,7 @@ export function StageWeather({ stage, data }: { stage: Stage; data: StageWeather
                       <span aria-label={look.word}>{look.icon}</span> {deg(at?.temperature)}
                     </b>
                     <small>
-                      now {deg(f.current.temperature)} · {Math.round(f.day.low)}–{deg(f.day.high)}
+                      {Math.round(f.day.low)}–{deg(f.day.high)}
                     </small>
                   </>
                 ) : (
@@ -95,6 +95,7 @@ export function StageWeather({ stage, data }: { stage: Stage; data: StageWeather
                     <Wind speed={at.wind} from={at.windFrom} />
                   </>
                 )}
+                {f && <span>now {deg(f.current.temperature)}</span>}
               </span>
             </li>
           );

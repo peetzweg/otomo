@@ -17,7 +17,7 @@ const stageDay = japanDay < "2026-11-03" ? "2026-11-03" : japanDay > "2026-11-06
 
 const browser = await chromium.launch({ channel: "chrome", args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 for (const scheme of ["dark", "light"]) {
-  for (const base of ["map", "terrain", "topo", "satellite"]) {
+  for (const base of ["map", "topo", "satellite"]) {
     const page = await (await browser.newContext({ viewport: { width: SIZE, height: SIZE }, deviceScaleFactor: 1, colorScheme: scheme })).newPage();
     await page.addInitScript(
       ({ base, place, day }) => {

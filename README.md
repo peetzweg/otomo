@@ -33,7 +33,9 @@ Made by a rider, for the riders. Not an official Rad Race app.
 - **Where you are.** With location on, your km, what's left to climb and the next checkpoint. Once
   you're on the route, the forecast only looks at the road ahead.
 - **Checkpoints, dates and start times** for each stage, from the riders portal.
-- **Map, terrain, topo and satellite.** Hillshading and contour lines are drawn in the browser from open
+- **Weather along the route.** Tap the sun for the forecast at the start, checkpoints, top and finish,
+  for the hour you'd get there (Open-Meteo, on JMA's models).
+- **Map, topo and satellite.** Hillshading and contour lines are drawn in the browser from open
   elevation data; satellite is GSI's aerial photography of Japan.
 - **Any spot, too.** Tap the pin to check the rain anywhere in Japan.
 

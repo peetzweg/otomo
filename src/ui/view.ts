@@ -1,17 +1,17 @@
 import { createStore } from "../store";
 
-/** What's under the radar: the plain map, the map with terrain shading, GSI's topographic map, or aerial photos. */
-export type Base = "map" | "terrain" | "topo" | "satellite";
+/** What's under the radar: the plain map, the map with terrain shading and contours, or aerial photos. */
+export type Base = "map" | "topo" | "satellite";
 export const BASES: { id: Base; label: string }[] = [
   { id: "map", label: "Map" },
-  { id: "terrain", label: "Terrain" },
   { id: "topo", label: "Topo" },
   { id: "satellite", label: "Satellite" },
 ];
 
 const BASE_KEY = "otomo.base";
 const WELCOMED_KEY = "otomo.welcomed";
-const savedBase = localStorage.getItem(BASE_KEY) as Base | null;
+// "terrain" (shading only) was folded into topo, which shades too.
+const savedBase = (localStorage.getItem(BASE_KEY)?.replace("terrain", "topo") ?? null) as Base | null;
 
 export const view = createStore({
   base: BASES.some((b) => b.id === savedBase) ? savedBase! : ("map" as Base),
