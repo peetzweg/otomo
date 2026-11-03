@@ -5,7 +5,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef } from "react";
 import { COVERAGE, radarTile, type Frame } from "../radar/jma";
 import { radar, setPlace } from "../radar/radar";
-import { bounds, checkpoints, elevationAt, geojson, pointAt, routeLength, stageById } from "../stages/stages";
+import { climbs, gradeColor, steps } from "../stages/climbs";
+import { bounds, checkpoints, elevationAt, geojson, pointAt, routeLength, stageById, stretch } from "../stages/stages";
 import { useStore } from "../store";
 import { setSnap, view, type Base } from "./view";
 
@@ -226,8 +227,46 @@ const FOCUS_ZOOM = 12.5;
 function clearArea(map: MapLibre) {
   const height = map.getContainer().clientHeight;
   const top = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 60;
-  const sheet = document.querySelector(".sheet")?.getBoundingClientRect().top ?? height * 0.6;
-  return { top, bottom: Math.max(0, height - sheet) };
+  const sheet = document.querySelector<HTMLElement>(".sheet");
+  if (!sheet) return { top, bottom: height * 0.4 };
+  // Where the sheet is going, not where it is: mid-slide, its rectangle is still on the way there. The
+  // drawer reports the height it settles at; offsetTop ignores the slide's transform.
+  const visible = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sheet-height")) || sheet.offsetHeight;
+  const sheetBottom = sheet.offsetTop + sheet.offsetHeight;
+  return { top, bottom: Math.max(0, height - (sheetBottom - visible)) };
+}
+
+const CLIMB = "climb";
+
+/** The open climb over the route, each step in its gradient's colour, and the map framed on it. */
+function syncClimb(map: MapLibre, stageId: string | undefined, number: number | undefined, top: Marker) {
+  for (const id of [CLIMB, `${CLIMB}-casing`]) if (map.getLayer(id)) map.removeLayer(id);
+  if (map.getSource(CLIMB)) map.removeSource(CLIMB);
+  const stage = stageById(stageId);
+  const climb = stage && number !== undefined ? climbs(stage).find((c) => c.number === number) : undefined;
+  if (!stage || !climb) return top.remove();
+  const features = steps(stage, climb).map((s) => ({
+    type: "Feature" as const,
+    properties: { color: gradeColor(s.grade) },
+    geometry: { type: "LineString" as const, coordinates: stretch(stage, s.fromKm, s.toKm) },
+  }));
+  map.addSource(CLIMB, { type: "geojson", data: { type: "FeatureCollection", features } });
+  const width = ["interpolate", ["linear"], ["zoom"], 8, 4, 13, 9] as ExpressionSpecification;
+  map.addLayer({ id: `${CLIMB}-casing`, type: "line", source: CLIMB, layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#0b0d12", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 7, 13, 12] } });
+  map.addLayer({ id: CLIMB, type: "line", source: CLIMB, layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": width } });
+  top.setLngLat(pointAt(stage, climb.topKm)).addTo(map);
+  top.getElement().textContent = `▲ ${climb.topElevation.toLocaleString("en-US")} m`;
+  const line = stretch(stage, climb.startKm, climb.topKm);
+  const lngs = line.map((p) => p[0]);
+  const lats = line.map((p) => p[1]);
+  const { top: above, bottom } = clearArea(map);
+  map.fitBounds(
+    [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)],
+    ],
+    { padding: { top: above + 40, bottom: bottom + 30, left: 40, right: 40 }, maxZoom: 13.5, duration: 800 },
+  );
 }
 
 /** Puts a point in the middle of the visible map, not the middle of the screen behind the sheet. */
@@ -272,6 +311,16 @@ export function RadarMap() {
   const cursorKm = useStore(radar, (s) => s.cursorKm);
   const riderRef = useRef<Marker>(null);
   const cursorRef = useRef<Marker>(null);
+  const climbNumber = useStore(view, (s) => s.climb);
+  const climbTop = useRef<Marker>(null);
+  const climbTopMarker = () => {
+    if (!climbTop.current) {
+      const label = document.createElement("div");
+      label.className = "climb-top";
+      climbTop.current = new Marker({ element: label, anchor: "bottom", offset: [0, -6] });
+    }
+    return climbTop.current;
+  };
   const base = useStore(view, (s) => s.base);
 
   useEffect(() => {
@@ -307,6 +356,7 @@ export function RadarMap() {
       const { frames, index, stage } = radar.get();
       syncRoute(map, stage);
       syncFrames(map, frames, index);
+      syncClimb(map, stage, view.get().climb, climbTopMarker());
     });
     // Moving the map yourself folds the sheet away to make room; a fit to a stage doesn't.
     const fold = (e: { originalEvent?: Event }) => e.originalEvent && setSnap("folded");
@@ -341,6 +391,19 @@ export function RadarMap() {
       map.remove();
     };
   }, []);
+
+  // Opening a climb frames it; closing it frames the whole stage again.
+  const shownClimb = useRef<number>(undefined);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady.current) return;
+    // After the sheet has swapped pages and reported its new height (see clearArea).
+    requestAnimationFrame(() => {
+      syncClimb(map, stage, climbNumber, climbTopMarker());
+      if (climbNumber === undefined && shownClimb.current !== undefined) fitStage(map, stage);
+      shownClimb.current = climbNumber;
+    });
+  }, [climbNumber, stage]);
 
   // A new base means a fresh style; style.load puts the base, the route and the radar back on.
   const shownBase = useRef(base);

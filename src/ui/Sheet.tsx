@@ -1,15 +1,17 @@
-import { useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { css, inCoverage, LEVELS, STEP_MS } from "../radar/jma";
 import { NOW_INDEX, radar, seek, selectStage, setCursor, togglePlay } from "../radar/radar";
 import { clock, summarize, summarizeRoute, type Summary } from "../radar/summary";
 import type { Progress } from "../stages/progress";
 import { checkpoints, climbBetween, dayLabel, elevationAt, routeLength, STAGES, stageById, type Stage } from "../stages/stages";
+import { climbs } from "../stages/climbs";
 import { describe } from "../stages/weather";
 import { useStore } from "../store";
 import { PauseIcon, PlayIcon, SunIcon } from "./icons";
+import { ClimbList, ClimbMarks, ClimbPage, climbHeadline } from "./Climbs";
 import { useDrawer } from "./drawer";
 import { StageWeather, useStageWeather, type StageWeatherData } from "./StageWeather";
-import { setSnap, view } from "./view";
+import { openClimb, setSnap, view } from "./view";
 
 /** The panel over the bottom of the map: what the rain does here, and the timeline to scrub through it. */
 export function Sheet() {
@@ -27,8 +29,12 @@ export function Sheet() {
   const head = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const halfEnd = useRef<HTMLDivElement>(null);
-  // Only a stage has more to show when pulled all the way up.
-  const drawer = useDrawer({ sheet, head, body, halfEnd }, !!stage);
+  const climbNumber = useStore(view, (s) => s.climb);
+  const climb = stage && climbNumber !== undefined ? climbs(stage).find((c) => c.number === climbNumber) : undefined;
+  // A climb's page belongs to its stage.
+  useEffect(() => openClimb(undefined), [stage?.id]);
+  // Only a stage has more to show when pulled all the way up; a climb's page fits at half.
+  const drawer = useDrawer({ sheet, head, body, halfEnd }, !!stage && !climb);
   const weather = useStageWeather(stage);
 
   /** The sun: pull the sheet up and bring the weather to the top, or put it back. */
@@ -40,7 +46,10 @@ export function Sheet() {
     if (section) scroller.scrollTo({ top: section.offsetTop - scroller.offsetTop - 8, behavior: "smooth" });
   };
 
-  const where = stage
+  const headline = stage && climb ? climbHeadline(stage, climb) : undefined;
+  const where = headline
+    ? headline.where
+    : stage
     ? `${dayLabel(stage)} · ${stage.start} start`
     : { gps: "Your location", pin: "Pinned spot", default: "Tokyo Station" }[place.source];
   const reading: Summary = { title: "Reading the radar…", detail: " " };
@@ -73,12 +82,19 @@ export function Sheet() {
         <span className="grabber" aria-hidden="true" />
         <p className="sheet-where">{where}</p>
         {/* Keyed, so a new answer fades in rather than snapping (see .sheet-title). */}
-        <h1 key={summary.title} className="sheet-title">
-          {summary.title}
+        <h1 key={headline?.title ?? summary.title} className="sheet-title">
+          {headline?.title ?? summary.title}
         </h1>
       </div>
       <div ref={body} className="sheet-body" inert={collapsed}>
-        <div>
+        {stage && climb ? (
+          // Keyed, so moving between climbs and back fades the page (see .sheet-page).
+          <div key={`climb-${climb.number}`} className="sheet-page">
+            <ClimbPage stage={stage} climb={climb} riding={riding} />
+            <div ref={halfEnd} />
+          </div>
+        ) : (
+        <div key="stage" className="sheet-page">
           <p className="sheet-detail">{summary.detail}</p>
           {stage && progress && <ProgressLine stage={stage} progress={progress} />}
           <StagePicker selected={stage?.id} weatherOpen={snap === "full"} onWeather={toggleWeather} />
@@ -87,10 +103,12 @@ export function Sheet() {
           <div ref={halfEnd} />
           {stage && (
             <>
+              <ClimbList stage={stage} />
               <StageWeather stage={stage} data={weather} />
             </>
           )}
         </div>
+        )}
       </div>
     </section>
   );
@@ -277,6 +295,7 @@ function RouteProfile({ stage, riding, weather }: { stage: Stage; riding: Progre
           </>
         )}
       </div>
+      <ClimbMarks stage={stage} />
       <div className="profile-labels">
         <span>
           {from}

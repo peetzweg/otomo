@@ -1122,6 +1122,21 @@ button {
   text-align: right;
 }
 
+.profile-labels span:first-child,
+.profile-labels span:last-child {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* The middle gives way, so the towns and their temperatures stay on one line each. */
+.profile-labels span:nth-child(2) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
 .profile-temps {
   font-size: 12px;
   font-weight: 600;
@@ -1298,4 +1313,245 @@ button {
 
 .chip.sun:disabled {
   opacity: 0.35;
+}
+
+/* ---------- Climbs ---------- */
+
+/* A page (the stage's, or a climb's) fades in when the sheet switches to it. */
+.sheet-page {
+  transition:
+    opacity 240ms var(--ease-out),
+    transform 240ms var(--ease-out);
+}
+
+@starting-style {
+  .sheet-page {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Under the profile: each climb's span as a bar, its badge centred under it. */
+.climb-marks {
+  position: relative;
+  height: 24px;
+  margin-top: 3px;
+}
+
+.climb-span {
+  position: absolute;
+  top: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--label-3);
+}
+
+.climb-mark {
+  position: absolute;
+  top: 0;
+  /* A generous target: the badge plus room around it. */
+  padding: 5px 2px 2px;
+  transform: translateX(-50%);
+  transition: transform 160ms var(--ease-out);
+}
+
+.climb-mark:active {
+  transform: translateX(-50%) scale(0.92);
+}
+
+.climb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 17px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--label);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* The stage's toughest climb wears the polka-dot jersey's red. */
+.climb-badge.toughest {
+  background: #e8354a;
+  color: #fff;
+}
+
+.climb-row {
+  width: 100%;
+  text-align: left;
+  grid-template-columns: auto 1fr auto 12px;
+  transition: transform 160ms var(--ease-out);
+}
+
+.climb-row:active {
+  transform: scale(0.98);
+}
+
+.climb-tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: 1px;
+  background: var(--fill);
+  color: var(--label-2);
+}
+
+.climb-tag.toughest {
+  background: rgba(232, 53, 74, 0.18);
+  color: #ff6b7d;
+}
+
+.climb-chevron {
+  font-size: 20px;
+  color: var(--label-3);
+}
+
+.climbs {
+  margin-top: 18px;
+}
+
+.climb-page {
+  padding-top: 2px;
+}
+
+.climb-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.climb-nav button {
+  height: 32px;
+  min-width: 36px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: var(--fill);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--label);
+  transition: transform 160ms var(--ease-out);
+}
+
+.climb-nav span {
+  display: flex;
+  gap: 6px;
+}
+
+.climb-nav button:active {
+  transform: scale(0.94);
+}
+
+.climb-nav button:disabled {
+  opacity: 0.3;
+}
+
+.climb-chart {
+  position: relative;
+  margin-top: 12px;
+}
+
+.climb-plot {
+  position: relative;
+}
+
+.climb-chart svg {
+  display: block;
+  width: 100%;
+  height: 150px;
+  border-radius: 10px;
+}
+
+.climb-line {
+  fill: none;
+  stroke: var(--label);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+}
+
+/* Each step's gradient, sitting in its own colour. */
+.climb-grade {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(0, 0, 0, 0.72);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.climb-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.climb-scale {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--label-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.climb-scale span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.climb-scale i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.climb-scale-unit {
+  margin-left: auto;
+}
+
+.climb-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 12px 0 0;
+}
+
+.climb-stats div {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--fill);
+}
+
+.climb-stats dt {
+  font-size: 12px;
+  color: var(--label-2);
+}
+
+.climb-stats dd {
+  margin: 2px 0 0;
+  font: 700 18px/1.2 var(--rounded);
+  font-variant-numeric: tabular-nums;
+}
+
+/* On the map, at the climb's top. */
+.climb-top {
+  padding: 3px 8px;
+  border-radius: 9px;
+  background: #fff;
+  color: #0b0d12;
+  font: 800 12px/1.2 var(--sans);
+  white-space: nowrap;
+  box-shadow: 0 0 0 2px #0b0d12, 0 3px 10px rgba(0, 0, 0, 0.35);
 }

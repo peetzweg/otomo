@@ -33,6 +33,10 @@ Made by a rider, for the riders. Not an official Rad Race app.
 - **Where you are.** With location on, your km, what's left to climb and the next checkpoint. Once
   you're on the route, the forecast only looks at the road ahead.
 - **Checkpoints, dates and start times** for each stage, from the riders portal.
+- **Every real climb.** Climbs of 100 m or more, found in the elevation profile (false flats trimmed,
+  short breathers merged, tunnel and bridge spikes smoothed out), rated Cat 4 to HC by the FIETS index,
+  toughest and easiest of each stage marked. Tap a badge under the profile for the climb's page: its
+  gradient profile km by km, and the road coloured by gradient on the map.
 - **Weather along the route.** Tap the sun for the forecast at the start, checkpoints, top and finish,
   for the hour you'd get there (Open-Meteo, on JMA's models).
 - **Map, topo and satellite.** Hillshading and contour lines are drawn in the browser from open

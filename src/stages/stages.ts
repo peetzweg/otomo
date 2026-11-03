@@ -61,6 +61,12 @@ export function pointAt(stage: Stage, km: number): [number, number] {
   return [lng1 + (lng2 - lng1) * t, lat1 + (lat2 - lat1) * t];
 }
 
+/** The route between two km on the komoot track, as a line. */
+export function stretch(stage: Stage, fromKm: number, toKm: number): [number, number][] {
+  const inside = stage.points.filter((p) => p[2] > fromKm && p[2] < toKm).map(([lng, lat]) => [lng, lat] as [number, number]);
+  return [pointAt(stage, fromKm), ...inside, pointAt(stage, toKm)];
+}
+
 export function checkpoints(stage: Stage): Checkpoint[] {
   const scale = routeLength(stage) / stage.distanceKm;
   return stage.checkpoints.map((cp) => {

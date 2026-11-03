@@ -62,6 +62,12 @@ const clockAt = (start: string, minutes: number) => {
 /** The expected time at a waypoint, from the shared start time and komoot's planned pace: "10:42". */
 export const etaAt = (stage: Stage, point: Waypoint) => clockAt(stage.start, point.minutes);
 
+/** The same for any km on the komoot track. */
+export function etaAtKm(stage: Stage, km: number) {
+  const point = stage.points.find((p) => p[2] >= km) ?? stage.points[stage.points.length - 1];
+  return clockAt(stage.start, point[3]);
+}
+
 export function forecastFor(stage: Stage, points: Waypoint[]): Promise<PointForecast[]> {
   const key = stage.id;
   const cached = forecasts.get(key);

@@ -56,7 +56,32 @@ function simplify(points, tolerance) {
   return points.filter((_, i) => keep[i]);
 }
 
-/** Elevation in metres every PROFILE_KM, from start to finish. */
+/**
+ * Tunnels and bridges put spikes in the elevation: the terrain model has the hill above the tunnel, or
+ * the valley under the bridge, so the track jumps 100 m and back within a few hundred metres. A jump
+ * steeper than SPIKE_GRADE that returns to about where it left within SPIKE_SPAN samples is one; it
+ * gets the straight line across instead.
+ */
+const SPIKE_GRADE = 0.15;
+const SPIKE_SPAN = 3; // samples, i.e. 1.5 km
+const SPIKE_RETURN_M = 25;
+
+function despike(heights) {
+  const out = [...heights];
+  for (let i = 0; i < out.length - 2; i++) {
+    for (let j = Math.min(out.length - 1, i + SPIKE_SPAN); j > i + 1; j--) {
+      if (Math.abs(out[j] - out[i]) > SPIKE_RETURN_M) continue;
+      const between = out.slice(i + 1, j).map((h, k) => h - (out[i] + ((out[j] - out[i]) * (k + 1)) / (j - i)));
+      const worst = Math.max(...between.map(Math.abs));
+      if (worst / (PROFILE_KM * 1000) <= SPIKE_GRADE) continue;
+      for (let k = i + 1; k < j; k++) out[k] = Math.round(out[i] + ((out[j] - out[i]) * (k - i)) / (j - i));
+      break;
+    }
+  }
+  return out;
+}
+
+/** Elevation in metres every PROFILE_KM, from start to finish, without tunnel and bridge spikes. */
 function profile(points, items) {
   const out = [];
   let at = 0;
@@ -65,7 +90,7 @@ function profile(points, items) {
     const t = points[at + 1][2] > points[at][2] ? (km - points[at][2]) / (points[at + 1][2] - points[at][2]) : 0;
     out.push(Math.round(items[at].alt + (items[at + 1].alt - items[at].alt) * Math.min(1, Math.max(0, t))));
   }
-  return out;
+  return despike(out);
 }
 
 const { _embedded } = await json(`${API}/collections/${collection}/compilation/?limit=100`);

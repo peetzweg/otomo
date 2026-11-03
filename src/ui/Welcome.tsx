@@ -6,7 +6,7 @@ const FEATURES = [
     title: "Rain on your stage",
     text: "The Japan Meteorological Agency's radar, 250\u00a0m sharp and new every 5 minutes: the last 90 minutes and the next hour, on the route and on the climbs.",
   },
-  { title: "Know the climbs", text: "Drag along the elevation profile and a marker shows where that top or valley is on the map." },
+  { title: "Know the climbs", text: "Every climb of 100 m or more, rated. Tap its badge under the profile for its gradients, km by km." },
   { title: "Where you are", text: "Tap the arrow: your km, what's left to climb, and the next checkpoint." },
   { title: "Weather along the route", text: "Tap the sun: the forecast at the start, the checkpoints, the top and the finish, for when you'll be there." },
   { title: "Map, topo, satellite", text: "Switch under the layers button, whatever helps you read the road." },

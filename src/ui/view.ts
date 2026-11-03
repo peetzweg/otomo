@@ -17,9 +17,17 @@ export const view = createStore({
   base: BASES.some((b) => b.id === savedBase) ? savedBase! : ("map" as Base),
   /** Where the sheet rests: folded to its headline, half (everyday), or full (more, scrolling). */
   snap: "half" as Snap,
+  /** The climb whose page the sheet shows instead of the stage, by its number. */
+  climb: undefined as number | undefined,
   /** The welcome sheet has been seen; it only ever shows once. */
   welcomed: localStorage.getItem(WELCOMED_KEY) === "1",
 });
+
+/** Opens a climb's page (at half, so the map shows the climb), or closes it with `undefined`. */
+export function openClimb(climb: number | undefined) {
+  view.set({ climb });
+  if (climb !== undefined && view.get().snap !== "half") setSnap("half");
+}
 
 export function finishWelcome() {
   localStorage.setItem(WELCOMED_KEY, "1");

@@ -80,9 +80,20 @@ export function useDrawer({ sheet, head, body, halfEnd }: Parts, hasMore: boolea
       }
     };
     const observer = new ResizeObserver(measure);
-    observer.observe(sheet.current!);
-    observer.observe(body.current!.firstElementChild!);
+    const watch = () => {
+      observer.disconnect();
+      observer.observe(sheet.current!);
+      const content = body.current!.firstElementChild;
+      if (content) observer.observe(content);
+    };
+    watch();
     measure();
+    // A different page (a climb's, or back to the stage) is new content to watch and measure.
+    const pages = new MutationObserver(() => {
+      watch();
+      measure();
+    });
+    pages.observe(body.current!, { childList: true });
     // Snapping from elsewhere (moving the map, a button) animates the same way.
     let last = view.get().snap;
     const unsubscribe = view.subscribe(() => {
@@ -91,6 +102,7 @@ export function useDrawer({ sheet, head, body, halfEnd }: Parts, hasMore: boolea
     });
     return () => {
       observer.disconnect();
+      pages.disconnect();
       unsubscribe();
     };
   }, []);
