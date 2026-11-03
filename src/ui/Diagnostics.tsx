@@ -21,6 +21,7 @@ function readings() {
     ["Visual viewport", `${Math.round(visualViewport?.width ?? 0)} × ${Math.round(visualViewport?.height ?? 0)}`],
     ["Document", `${document.documentElement.clientWidth} × ${document.documentElement.clientHeight}`],
     ["App box", `${Math.round(root.top)} → ${Math.round(root.bottom)} (${Math.round(root.height)})`],
+    ["Page height", `${Math.round(document.documentElement.getBoundingClientRect().height)} (min-height ${getComputedStyle(document.documentElement).minHeight})`],
     ["--app-height", getComputedStyle(document.documentElement).getPropertyValue("--app-height") || "unset"],
     ["100vh / dvh / svh / lvh", ["100vh", "100dvh", "100svh", "100lvh"].map(measure).join(" / ")],
     ["Safe area t / b", `${measure("env(safe-area-inset-top, 0px)")} / ${measure("env(safe-area-inset-bottom, 0px)")}`],

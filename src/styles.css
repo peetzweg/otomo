@@ -61,6 +61,23 @@
   height: var(--app-height, 100vh);
 }
 
+/*
+ * iOS 26, installed with a translucent status bar (WebKit bug 301108): while the page is no taller than
+ * the viewport, iOS makes the viewport shorter than the screen by the status bar's height, and draws
+ * nothing fixed below that edge; that's the black strip at the bottom. A page at least the screen's
+ * height gets the whole screen. min() caps it at 100lvh, so it never overshoots into scrolling once
+ * the viewport is right.
+ */
+@media (display-mode: standalone) {
+  html {
+    min-height: min(100lvh, calc(100% + env(safe-area-inset-top)));
+  }
+}
+
+html.standalone {
+  min-height: min(100lvh, calc(100% + env(safe-area-inset-top)));
+}
+
 html,
 body {
   height: 100%;
