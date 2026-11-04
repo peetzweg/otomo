@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 import { COVERAGE, radarTile, type Frame } from "../radar/jma";
 import { radar, setPlace } from "../radar/radar";
 import { climbs, gradeColor, steps } from "../stages/climbs";
-import { BRAND_COLORS, brandIcon, BRANDS, konbini } from "../stages/konbini";
+import { brandIcon, BRANDS, konbini } from "../stages/konbini";
 import { bounds, checkpoints, elevationAt, geojson, pointAt, routeLength, stageById, stretch } from "../stages/stages";
 import { useStore } from "../store";
 import { setSnap, view, type Base } from "./view";
@@ -239,7 +239,7 @@ function clearArea(map: MapLibre) {
 
 const KONBINI = "konbini";
 
-/** The chains' logo tiles, loaded once up front so they're ready by the time the map zooms in to them. */
+/** The chains' logo tiles, loaded once up front so they're ready by the time the map draws them. */
 const konbiniIcons = new Map<string, HTMLImageElement>(
   BRANDS.map((brand) => {
     const image = new Image();
@@ -248,9 +248,13 @@ const konbiniIcons = new Map<string, HTMLImageElement>(
   }),
 );
 
-/** The stage's konbini as dots in their chain's colour, named once you're close enough to read them. */
+/**
+ * The stage's konbini as their chain's logo, on a tile styled like the app's other markers (white,
+ * dark ring, soft shadow; see public/konbini). Where tiles would overlap in a town, some wait until
+ * you zoom in.
+ */
 function syncKonbini(map: MapLibre, stageId: string | undefined) {
-  for (const id of [`${KONBINI}-label`, KONBINI]) if (map.getLayer(id)) map.removeLayer(id);
+  if (map.getLayer(KONBINI)) map.removeLayer(KONBINI);
   if (map.getSource(KONBINI)) map.removeSource(KONBINI);
   const stage = stageById(stageId);
   if (!stage) return;
@@ -262,40 +266,20 @@ function syncKonbini(map: MapLibre, stageId: string | undefined) {
     },
     attribution: '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Konbini © OpenStreetMap</a>',
   });
-  const color: ExpressionSpecification = ["match", ["get", "brand"], ...Object.entries(BRAND_COLORS).flat(), "#888"] as unknown as ExpressionSpecification;
   // Under the route's start and finish dots, over everything else of the base map.
-  const below = map.getLayer(`${ROUTE}-ends`) ? `${ROUTE}-ends` : undefined;
   map.addLayer(
     {
       id: KONBINI,
-      type: "circle",
-      source: KONBINI,
-      minzoom: 8,
-      paint: {
-        "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 3, 13, 6.5],
-        "circle-color": color,
-        "circle-stroke-color": "#ffffff",
-        "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 13, 2],
-      },
-    },
-    below,
-  );
-  // Close up, each store's logo over its dot. Where logos would collide in a town, the dots still show.
-  map.addLayer(
-    {
-      id: `${KONBINI}-label`,
       type: "symbol",
       source: KONBINI,
-      minzoom: 11,
+      minzoom: 7,
       layout: {
         "icon-image": ["concat", `${KONBINI}-`, ["get", "brand"]],
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 11, 0.8, 14, 1.1],
-        "icon-anchor": "bottom",
-        "icon-offset": [0, -4],
-        "icon-padding": 1,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 7, 0.55, 11, 0.8, 14, 1],
+        "icon-padding": 0,
       },
     },
-    below,
+    map.getLayer(`${ROUTE}-ends`) ? `${ROUTE}-ends` : undefined,
   );
 }
 
@@ -317,6 +301,8 @@ function syncClimb(map: MapLibre, stageId: string | undefined, number: number | 
   const width = ["interpolate", ["linear"], ["zoom"], 8, 4, 13, 9] as ExpressionSpecification;
   map.addLayer({ id: `${CLIMB}-casing`, type: "line", source: CLIMB, layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#0b0d12", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 7, 13, 12] } });
   map.addLayer({ id: CLIMB, type: "line", source: CLIMB, layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": width } });
+  // A store at the foot of the climb stays visible over it.
+  if (map.getLayer(KONBINI)) map.moveLayer(KONBINI);
   top.setLngLat(pointAt(stage, climb.topKm)).addTo(map);
   top.getElement().textContent = `▲ ${climb.topElevation.toLocaleString("en-US")} m`;
   const line = stretch(stage, climb.startKm, climb.topKm);

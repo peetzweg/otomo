@@ -1,4 +1,4 @@
-import { BRAND_COLORS, brandIcon, BRANDS, gaps, konbini, NEAR_M, type Konbini } from "../stages/konbini";
+import { BRAND_COLORS, brandIcon, BRANDS, konbini, NEAR_M, type Konbini } from "../stages/konbini";
 import { routeLength, type Stage } from "../stages/stages";
 
 /** Under the profile: a tick per store, in its chain's colour. Where they thin out shows at a glance. */
@@ -15,18 +15,20 @@ export function KonbiniTicks({ stage }: { stage: Stage }) {
 
 const Logo = ({ brand }: { brand: Konbini["brand"] }) => <img className="konbini-logo" src={brandIcon(brand)} alt="" />;
 
-const where = (s: Konbini | undefined, fallback: string) => (s ? `${s.brand} at km ${Math.round(s.km)}` : fallback);
+/** The branch's own name, when it says more than the chain's ("ローソン 霧島国分店", not just "Lawson"). */
+function branch(store: Konbini) {
+  const rest = store.name.replace(/セブン-?イレブン|7-?eleven|ファミリーマート|familymart|ローソン|lawson/gi, "").trim();
+  return rest ? store.name : "";
+}
 
-/** In the full sheet: how many there are, and the long stretches without one. */
+/** In the full sheet: every store along the stage, in route order. */
 export function KonbiniSection({ stage }: { stage: Stage }) {
   const stores = konbini(stage);
-  const long = gaps(stage).slice(0, 3);
   return (
     <div className="konbini">
       <h2 className="wx-title">Konbini</h2>
       <p className="wx-caption">
-        7-Eleven, FamilyMart and Lawson within {NEAR_M} m of the route, from OpenStreetMap: it can miss the odd store, so
-        treat a gap as "probably nothing".
+        7-Eleven, FamilyMart and Lawson within {NEAR_M} m of the route, from OpenStreetMap: it can miss the odd store.
       </p>
       <div className="konbini-counts">
         {BRANDS.map((brand) => (
@@ -36,22 +38,21 @@ export function KonbiniSection({ stage }: { stage: Stage }) {
           </span>
         ))}
       </div>
-      {long.length > 0 && (
-        <ol className="wx-list">
-          {long.map((g) => (
-            <li key={g.from} className="wx-row konbini-gap">
-              <span className="wx-time">{Math.round(g.length)} km</span>
+      {stores.length ? (
+        <ol className="wx-list konbini-list">
+          {stores.map((s, i) => (
+            <li key={i} className="wx-row konbini-row">
+              <span className="wx-time">km {Math.round(s.km)}</span>
+              <Logo brand={s.brand} />
               <span className="wx-place">
-                <b>
-                  Nothing from km {Math.round(g.from)} to {Math.round(g.to)}
-                </b>
-                <small>
-                  Stock up at the {where(g.before, "start")}; next: {where(g.after, "the finish")}
-                </small>
+                <b>{s.brand}</b>
+                {branch(s) && <small>{branch(s)}</small>}
               </span>
             </li>
           ))}
         </ol>
+      ) : (
+        <p className="wx-caption">None found along this stage.</p>
       )}
     </div>
   );

@@ -1619,10 +1619,20 @@ button {
   height: 22px;
 }
 
-.konbini-gap {
-  grid-template-columns: 52px 1fr;
+.konbini-row {
+  grid-template-columns: 56px 22px 1fr;
+  padding-block: 8px;
 }
 
-.konbini-gap small {
-  white-space: normal;
+/*
+ * The charts are for dragging and tapping, not reading off as text: a long press on them shouldn't
+ * select (and highlight) their labels, or pop up iOS's callout.
+ */
+.profile,
+.timeline,
+.climb-chart,
+.climb-marks {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }

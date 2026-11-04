@@ -37,10 +37,9 @@ Made by a rider, for the riders. Not an official Rad Race app.
   short breathers merged, tunnel and bridge spikes smoothed out), rated Cat 4 to HC by the FIETS index,
   toughest and easiest of each stage marked. Tap a badge under the profile for the climb's page: its
   gradient profile km by km, and the road coloured by gradient on the map.
-- **Konbini.** Every 7-Eleven, FamilyMart and Lawson within 300 m of the route: dots on the map (their
-  logos, from the chains' own sites, once you zoom in), ticks
-  under the profile, the next one while riding, and the long stretches without any (Stage 2 has
-  nothing from km 5 to 103).
+- **Konbini.** Every 7-Eleven, FamilyMart and Lawson within 300 m of the route: their logos (from the
+  chains' own sites) on the map, ticks under the profile, the next one while riding, and every store
+  with its km in the full sheet (Stage 2 has none from km 5 to 103).
 - **Weather along the route.** Tap the sun for the forecast at the start, checkpoints, top and finish,
   for the hour you'd get there (Open-Meteo, on JMA's models).
 - **Map, topo and satellite.** Hillshading and contour lines are drawn in the browser from open
