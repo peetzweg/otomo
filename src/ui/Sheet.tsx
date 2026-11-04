@@ -5,10 +5,12 @@ import { clock, summarize, summarizeRoute, type Summary } from "../radar/summary
 import type { Progress } from "../stages/progress";
 import { checkpoints, climbBetween, dayLabel, elevationAt, routeLength, STAGES, stageById, type Stage } from "../stages/stages";
 import { climbs } from "../stages/climbs";
+import { nextKonbini } from "../stages/konbini";
 import { describe } from "../stages/weather";
 import { useStore } from "../store";
 import { PauseIcon, PlayIcon, SunIcon } from "./icons";
 import { ClimbList, ClimbMarks, ClimbPage, climbHeadline } from "./Climbs";
+import { KonbiniSection, KonbiniTicks } from "./Konbini";
 import { useDrawer } from "./drawer";
 import { StageWeather, useStageWeather, type StageWeatherData } from "./StageWeather";
 import { openClimb, setSnap, view } from "./view";
@@ -104,6 +106,7 @@ export function Sheet() {
           {stage && (
             <>
               <ClimbList stage={stage} />
+              <KonbiniSection stage={stage} />
               <StageWeather stage={stage} data={weather} />
             </>
           )}
@@ -142,11 +145,13 @@ function ProgressLine({ stage, progress }: { stage: Stage; progress: Progress })
   const length = routeLength(stage);
   const done = officialKm(stage, progress.km);
   const next = checkpoints(stage).find((cp) => cp.routeKm > progress.km);
+  const shop = nextKonbini(stage, progress.km);
   const parts = [
     `km ${Math.round(done)}`,
     `${Math.round(stage.distanceKm - done)} km to go`,
     `↑${climbBetween(stage, progress.km, length).toLocaleString("en-US")} m left`,
     next && `${next.code} in ${Math.round(next.km - done)} km`,
+    shop && `🏪 ${shop.brand} in ${(shop.km - done).toFixed(1)} km`,
   ];
   return <p className="sheet-progress riding">{parts.filter(Boolean).join(" · ")}</p>;
 }
@@ -295,6 +300,7 @@ function RouteProfile({ stage, riding, weather }: { stage: Stage; riding: Progre
           </>
         )}
       </div>
+      <KonbiniTicks stage={stage} />
       <ClimbMarks stage={stage} />
       <div className="profile-labels">
         <span>

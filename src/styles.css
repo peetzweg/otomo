@@ -1572,3 +1572,57 @@ button {
   white-space: nowrap;
   box-shadow: 0 0 0 2px #0b0d12, 0 3px 10px rgba(0, 0, 0, 0.35);
 }
+
+/* ---------- Konbini ---------- */
+
+.konbini-ticks {
+  position: relative;
+  height: 6px;
+  margin-top: 4px;
+}
+
+.konbini-ticks i {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 6px;
+  margin-left: -1px;
+  border-radius: 1px;
+}
+
+.konbini {
+  margin-top: 18px;
+}
+
+.konbini-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--label-2);
+}
+
+.konbini-counts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.konbini-counts b {
+  color: var(--label);
+  font-variant-numeric: tabular-nums;
+}
+
+.konbini-logo {
+  width: 22px;
+  height: 22px;
+}
+
+.konbini-gap {
+  grid-template-columns: 52px 1fr;
+}
+
+.konbini-gap small {
+  white-space: normal;
+}

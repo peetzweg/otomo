@@ -37,6 +37,10 @@ Made by a rider, for the riders. Not an official Rad Race app.
   short breathers merged, tunnel and bridge spikes smoothed out), rated Cat 4 to HC by the FIETS index,
   toughest and easiest of each stage marked. Tap a badge under the profile for the climb's page: its
   gradient profile km by km, and the road coloured by gradient on the map.
+- **Konbini.** Every 7-Eleven, FamilyMart and Lawson within 300 m of the route: dots on the map (their
+  logos, from the chains' own sites, once you zoom in), ticks
+  under the profile, the next one while riding, and the long stretches without any (Stage 2 has
+  nothing from km 5 to 103).
 - **Weather along the route.** Tap the sun for the forecast at the start, checkpoints, top and finish,
   for the hour you'd get there (Open-Meteo, on JMA's models).
 - **Map, topo and satellite.** Hillshading and contour lines are drawn in the browser from open
@@ -53,6 +57,7 @@ Everything runs in the browser and the site is static (GitHub Pages). The phone 
 | Base map | [OpenFreeMap](https://openfreemap.org) (© OpenMapTiles, © OpenStreetMap contributors) |
 | Elevation (hillshade, contours) | [Terrain Tiles on AWS](https://registry.opendata.aws/terrain-tiles/) |
 | Aerial photos | [地理院タイル](https://maps.gsi.go.jp/development/ichiran.html) (GSI) |
+| Konbini (bundled at build time) | [OpenStreetMap](https://www.openstreetmap.org/copyright) via Overpass |
 
 The routes are bundled at build time from the public komoot collection, so komoot isn't contacted at runtime.
 
@@ -74,6 +79,7 @@ The routes come from the komoot collection and the day's details from the riders
 
 ```sh
 node scripts/komoot.mjs 4767132   # routes and elevation → src/stages/stages.json
+node scripts/konbini.mjs          # konbini along them → src/stages/konbini.json
 ```
 
 Dates, start times, official distances and checkpoints live in

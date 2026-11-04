@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { COVERAGE, radarTile, type Frame } from "../radar/jma";
 import { radar, setPlace } from "../radar/radar";
 import { climbs, gradeColor, steps } from "../stages/climbs";
+import { BRAND_COLORS, brandIcon, BRANDS, konbini } from "../stages/konbini";
 import { bounds, checkpoints, elevationAt, geojson, pointAt, routeLength, stageById, stretch } from "../stages/stages";
 import { useStore } from "../store";
 import { setSnap, view, type Base } from "./view";
@@ -236,6 +237,68 @@ function clearArea(map: MapLibre) {
   return { top, bottom: Math.max(0, height - (sheetBottom - visible)) };
 }
 
+const KONBINI = "konbini";
+
+/** The chains' logo tiles, loaded once up front so they're ready by the time the map zooms in to them. */
+const konbiniIcons = new Map<string, HTMLImageElement>(
+  BRANDS.map((brand) => {
+    const image = new Image();
+    image.src = brandIcon(brand);
+    return [`${KONBINI}-${brand}`, image] as const;
+  }),
+);
+
+/** The stage's konbini as dots in their chain's colour, named once you're close enough to read them. */
+function syncKonbini(map: MapLibre, stageId: string | undefined) {
+  for (const id of [`${KONBINI}-label`, KONBINI]) if (map.getLayer(id)) map.removeLayer(id);
+  if (map.getSource(KONBINI)) map.removeSource(KONBINI);
+  const stage = stageById(stageId);
+  if (!stage) return;
+  map.addSource(KONBINI, {
+    type: "geojson",
+    data: {
+      type: "FeatureCollection",
+      features: konbini(stage).map((s) => ({ type: "Feature", properties: { brand: s.brand }, geometry: { type: "Point", coordinates: [s.lng, s.lat] } })),
+    },
+    attribution: '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Konbini © OpenStreetMap</a>',
+  });
+  const color: ExpressionSpecification = ["match", ["get", "brand"], ...Object.entries(BRAND_COLORS).flat(), "#888"] as unknown as ExpressionSpecification;
+  // Under the route's start and finish dots, over everything else of the base map.
+  const below = map.getLayer(`${ROUTE}-ends`) ? `${ROUTE}-ends` : undefined;
+  map.addLayer(
+    {
+      id: KONBINI,
+      type: "circle",
+      source: KONBINI,
+      minzoom: 8,
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 3, 13, 6.5],
+        "circle-color": color,
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 13, 2],
+      },
+    },
+    below,
+  );
+  // Close up, each store's logo over its dot. Where logos would collide in a town, the dots still show.
+  map.addLayer(
+    {
+      id: `${KONBINI}-label`,
+      type: "symbol",
+      source: KONBINI,
+      minzoom: 11,
+      layout: {
+        "icon-image": ["concat", `${KONBINI}-`, ["get", "brand"]],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 11, 0.8, 14, 1.1],
+        "icon-anchor": "bottom",
+        "icon-offset": [0, -4],
+        "icon-padding": 1,
+      },
+    },
+    below,
+  );
+}
+
 const CLIMB = "climb";
 
 /** The open climb over the route, each step in its gradient's colour, and the map framed on it. */
@@ -348,6 +411,14 @@ export function RadarMap() {
     dot.className = "place-dot";
     markerRef.current = new Marker({ element: dot }).setLngLat([place.lng, place.lat]).addTo(map);
 
+    // A style asks for each logo when it first draws one: hand it over once it's loaded.
+    map.on("styleimagemissing", ({ id }) => {
+      const image = konbiniIcons.get(id);
+      if (!image) return;
+      const add = () => !map.hasImage(id) && map.addImage(id, image, { pixelRatio: 3 });
+      if (image.complete) add();
+      else image.addEventListener("load", add, { once: true });
+    });
     // A new style (light/dark switch) arrives without our layers, so they go back on every load.
     map.on("style.load", () => {
       styleReady.current = true;
@@ -355,6 +426,8 @@ export function RadarMap() {
       applyBase(map, view.get().base);
       const { frames, index, stage } = radar.get();
       syncRoute(map, stage);
+      for (const [id, image] of konbiniIcons) if (image.complete && !map.hasImage(id)) map.addImage(id, image, { pixelRatio: 3 });
+      syncKonbini(map, stage);
       syncFrames(map, frames, index);
       syncClimb(map, stage, view.get().climb, climbTopMarker());
     });
@@ -437,6 +510,7 @@ export function RadarMap() {
         : [];
     if (!map || !styleReady.current) return;
     syncRoute(map, stage);
+    syncKonbini(map, stage);
     fitStage(map, stage);
   }, [stage]);
 
