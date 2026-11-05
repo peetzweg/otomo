@@ -6,11 +6,13 @@ import type { Progress } from "../stages/progress";
 import { checkpoints, climbBetween, dayLabel, elevationAt, routeLength, STAGES, stageById, type Stage } from "../stages/stages";
 import { climbs } from "../stages/climbs";
 import { nextKonbini } from "../stages/konbini";
+import { nextTunnel, tunnelLength } from "../stages/tunnels";
 import { describe } from "../stages/weather";
 import { useStore } from "../store";
 import { PauseIcon, PlayIcon, SunIcon } from "./icons";
 import { ClimbList, ClimbMarks, ClimbPage, climbHeadline } from "./Climbs";
 import { KonbiniSection, KonbiniTicks } from "./Konbini";
+import { TunnelSection, TunnelStrip } from "./Tunnels";
 import { useDrawer } from "./drawer";
 import { StageWeather, useStageWeather, type StageWeatherData } from "./StageWeather";
 import { openClimb, setSnap, view } from "./view";
@@ -109,6 +111,7 @@ export function Sheet() {
             <>
               <ClimbList stage={stage} />
               <KonbiniSection stage={stage} />
+              <TunnelSection stage={stage} />
               <StageWeather stage={stage} data={weather} />
             </>
           )}
@@ -149,12 +152,16 @@ function ProgressLine({ stage, progress }: { stage: Stage; progress: Progress })
   const done = officialKm(stage, progress.km);
   const next = checkpoints(stage).find((cp) => cp.routeKm > progress.km);
   const shop = nextKonbini(stage, progress.km);
+  const tunnel = nextTunnel(stage, progress.km);
+  // A tunnel only gets a mention when it's close: lights on.
+  const tunnelSoon = tunnel && tunnel.from - done <= 3 ? tunnel : undefined;
   const parts = [
     `km ${Math.round(done)}`,
     `${Math.round(stage.distanceKm - done)} km to go`,
     `↑${climbBetween(stage, progress.km, length).toLocaleString("en-US")} m left`,
     next && `${next.code} in ${Math.round(next.km - done)} km`,
     shop && `🏪 ${shop.brand} in ${(shop.km - done).toFixed(1)} km`,
+    tunnelSoon && `Tunnel in ${(tunnelSoon.from - done).toFixed(1)} km · ${tunnelLength(tunnelSoon.lengthM)}`,
   ];
   return <p className="sheet-progress riding">{parts.filter(Boolean).join(" · ")}</p>;
 }
@@ -303,6 +310,7 @@ function RouteProfile({ stage, riding, weather }: { stage: Stage; riding: Progre
           </>
         )}
       </div>
+      <TunnelStrip stage={stage} />
       <KonbiniTicks stage={stage} />
       <ClimbMarks stage={stage} />
       <div className="profile-labels">

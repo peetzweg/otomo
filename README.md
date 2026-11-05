@@ -42,6 +42,9 @@ Made by a rider, for the riders. Not an official Rad Race app.
 - **Konbini.** Every 7-Eleven, FamilyMart and Lawson within 300 m of the route: their logos (from the
   chains' own sites) on the map, ticks under the profile, the next one while riding, and every store
   with its km in the full sheet (Stage 2 has none from km 5 to 103).
+- **Tunnels.** Every road tunnel the route goes through, from OpenStreetMap: the track dashed through
+  it on the map with a marker and its length, a bar under the profile, a heads-up 3 km before one
+  while riding, and the list with names and lengths in the full sheet.
 - **Weather along the route.** Tap the sun for the forecast at the start, checkpoints, top and finish,
   for the hour you'd get there (Open-Meteo, on JMA's models).
 - **Map, topo and satellite.** Hillshading and contour lines are drawn in the browser from open
@@ -58,7 +61,7 @@ Everything runs in the browser and the site is static (GitHub Pages). The phone 
 | Base map | [OpenFreeMap](https://openfreemap.org) (© OpenMapTiles, © OpenStreetMap contributors) |
 | Elevation (hillshade, contours) | [Terrain Tiles on AWS](https://registry.opendata.aws/terrain-tiles/) |
 | Aerial photos | [地理院タイル](https://maps.gsi.go.jp/development/ichiran.html) (GSI) |
-| Konbini (bundled at build time) | [OpenStreetMap](https://www.openstreetmap.org/copyright) via Overpass |
+| Konbini and tunnels (bundled at build time) | [OpenStreetMap](https://www.openstreetmap.org/copyright) via Overpass |
 
 The routes are bundled at build time from the public komoot collection, so komoot isn't contacted at runtime.
 
@@ -81,6 +84,7 @@ The routes come from the komoot collection and the day's details from the riders
 ```sh
 node scripts/komoot.mjs 4767132   # routes and elevation → src/stages/stages.json
 node scripts/konbini.mjs          # konbini along them → src/stages/konbini.json
+node scripts/tunnels.mjs          # tunnels on them → src/stages/tunnels.json
 ```
 
 Dates, start times, official distances and checkpoints live in

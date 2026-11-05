@@ -7,6 +7,7 @@ import { COVERAGE, radarTile, type Frame } from "../radar/jma";
 import { radar, setPlace } from "../radar/radar";
 import { climbs, gradeColor, steps } from "../stages/climbs";
 import { brandIcon, BRANDS, konbini } from "../stages/konbini";
+import { tunnelLength, tunnels } from "../stages/tunnels";
 import { bounds, checkpoints, elevationAt, geojson, pointAt, routeLength, stageById, stretch } from "../stages/stages";
 import { useStore } from "../store";
 import { setSnap, view, type Base } from "./view";
@@ -283,6 +284,85 @@ function syncKonbini(map: MapLibre, stageId: string | undefined) {
   );
 }
 
+const TUNNEL = "tunnel";
+const tunnelIcon = new Image();
+tunnelIcon.src = `${import.meta.env.BASE_URL}tunnel.png`;
+
+/**
+ * The stage's tunnels: the route through them dashed, as maps draw tunnels, and a marker in the
+ * middle of each with its length. Long ones show from afar; all of them once you're close.
+ */
+function syncTunnels(map: MapLibre, stageId: string | undefined) {
+  for (const id of [`${TUNNEL}-marker`, `${TUNNEL}-dash`, `${TUNNEL}-cover`]) if (map.getLayer(id)) map.removeLayer(id);
+  for (const id of [TUNNEL, `${TUNNEL}-middle`]) if (map.getSource(id)) map.removeSource(id);
+  const stage = stageById(stageId);
+  if (!stage) return;
+  const all = tunnels(stage);
+  map.addSource(TUNNEL, {
+    type: "geojson",
+    data: {
+      type: "FeatureCollection",
+      features: all.map((t) => ({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: stretch(stage, t.fromKm, t.toKm) } })),
+    },
+  });
+  map.addSource(`${TUNNEL}-middle`, {
+    type: "geojson",
+    data: {
+      type: "FeatureCollection",
+      features: all.map((t) => ({
+        type: "Feature",
+        properties: { length: t.lengthM, label: tunnelLength(t.lengthM) },
+        geometry: { type: "Point", coordinates: pointAt(stage, (t.fromKm + t.toKm) / 2) },
+      })),
+    },
+    attribution: '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Tunnels © OpenStreetMap</a>',
+  });
+  // Over the route's white line: a dark band the same width, with white dashes on it.
+  const below = map.getLayer(KONBINI) ? KONBINI : map.getLayer(`${ROUTE}-ends`) ? `${ROUTE}-ends` : undefined;
+  map.addLayer(
+    {
+      id: `${TUNNEL}-cover`,
+      type: "line",
+      source: TUNNEL,
+      layout: { "line-cap": "butt", "line-join": "round" },
+      paint: { "line-color": "#0b0d12", "line-width": ["interpolate", ["linear"], ["zoom"], 6, 4, 12, 9] },
+    },
+    below,
+  );
+  map.addLayer(
+    {
+      id: `${TUNNEL}-dash`,
+      type: "line",
+      source: TUNNEL,
+      layout: { "line-cap": "butt", "line-join": "round" },
+      paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2, 12, 5], "line-dasharray": [1.2, 1.2] },
+    },
+    below,
+  );
+  map.addLayer(
+    {
+      id: `${TUNNEL}-marker`,
+      type: "symbol",
+      source: `${TUNNEL}-middle`,
+      minzoom: 8,
+      // From afar only the long ones; from zoom 11 every tunnel, with its length.
+      filter: ["step", ["zoom"], [">=", ["get", "length"], 500], 11, true],
+      layout: {
+        "icon-image": TUNNEL,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 8, 0.6, 12, 0.85, 14, 1],
+        "text-field": ["step", ["zoom"], "", 11, ["get", "label"]],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": 12,
+        "text-anchor": "left",
+        "text-offset": [1.1, 0],
+        "text-optional": true,
+      },
+      paint: { "text-color": dark.matches ? "#ffffff" : "#0b0d12", "text-halo-color": dark.matches ? "#0b0d12" : "#ffffff", "text-halo-width": 1.6 },
+    },
+    below,
+  );
+}
+
 const CLIMB = "climb";
 
 /** The open climb over the route, each step in its gradient's colour, and the map framed on it. */
@@ -399,7 +479,7 @@ export function RadarMap() {
 
     // A style asks for each logo when it first draws one: hand it over once it's loaded.
     map.on("styleimagemissing", ({ id }) => {
-      const image = konbiniIcons.get(id);
+      const image = id === TUNNEL ? tunnelIcon : konbiniIcons.get(id);
       if (!image) return;
       const add = () => !map.hasImage(id) && map.addImage(id, image, { pixelRatio: 3 });
       if (image.complete) add();
@@ -412,8 +492,9 @@ export function RadarMap() {
       applyBase(map, view.get().base);
       const { frames, index, stage } = radar.get();
       syncRoute(map, stage);
-      for (const [id, image] of konbiniIcons) if (image.complete && !map.hasImage(id)) map.addImage(id, image, { pixelRatio: 3 });
+      for (const [id, image] of [...konbiniIcons, [TUNNEL, tunnelIcon] as const]) if (image.complete && !map.hasImage(id)) map.addImage(id, image, { pixelRatio: 3 });
       syncKonbini(map, stage);
+      syncTunnels(map, stage);
       syncFrames(map, frames, index);
       syncClimb(map, stage, view.get().climb, climbTopMarker());
     });
@@ -497,6 +578,7 @@ export function RadarMap() {
     if (!map || !styleReady.current) return;
     syncRoute(map, stage);
     syncKonbini(map, stage);
+    syncTunnels(map, stage);
     fitStage(map, stage);
   }, [stage]);
 

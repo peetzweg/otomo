@@ -1708,3 +1708,29 @@ button {
 [data-sheet="folded"] .maplibregl-ctrl-bottom-right {
   bottom: calc(var(--sheet-height, 96px) + var(--safe-bottom) + 76px);
 }
+
+/* ---------- Tunnels ---------- */
+
+.tunnel-strip {
+  position: relative;
+  height: 4px;
+  margin-top: 3px;
+}
+
+.tunnel-strip i {
+  position: absolute;
+  top: 0;
+  height: 4px;
+  border-radius: 1px;
+  background: var(--label);
+  opacity: 0.75;
+}
+
+.tunnels {
+  margin-top: 18px;
+}
+
+.tunnel-row {
+  grid-template-columns: 56px 22px 1fr auto;
+  padding-block: 8px;
+}
