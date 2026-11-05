@@ -290,7 +290,7 @@ tunnelIcon.src = `${import.meta.env.BASE_URL}tunnel.png`;
 
 /**
  * The stage's tunnels: the route through them dashed, as maps draw tunnels, and a marker in the
- * middle of each with its length. Long ones show from afar; all of them once you're close.
+ * middle of each with its length, at every zoom.
  */
 function syncTunnels(map: MapLibre, stageId: string | undefined) {
   for (const id of [`${TUNNEL}-marker`, `${TUNNEL}-dash`, `${TUNNEL}-cover`]) if (map.getLayer(id)) map.removeLayer(id);
@@ -344,22 +344,25 @@ function syncTunnels(map: MapLibre, stageId: string | undefined) {
       id: `${TUNNEL}-marker`,
       type: "symbol",
       source: `${TUNNEL}-middle`,
-      minzoom: 8,
-      // From afar only the long ones; from zoom 11 every tunnel, with its length.
-      filter: ["step", ["zoom"], [">=", ["get", "length"], 500], 11, true],
+      // Always on, however far out: a stage with tunnels should never look like one without. The icon
+      // never gives way; a length that would sit on top of another waits until there's room.
       layout: {
         "icon-image": TUNNEL,
-        "icon-size": ["interpolate", ["linear"], ["zoom"], 8, 0.6, 12, 0.85, 14, 1],
-        "text-field": ["step", ["zoom"], "", 11, ["get", "label"]],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 6, 0.55, 12, 0.85, 14, 1],
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        "text-field": ["get", "label"],
         "text-font": ["Noto Sans Regular"],
-        "text-size": 12,
+        "text-size": ["interpolate", ["linear"], ["zoom"], 6, 10, 12, 12],
         "text-anchor": "left",
         "text-offset": [1.1, 0],
         "text-optional": true,
+        "text-padding": 1,
       },
       paint: { "text-color": dark.matches ? "#ffffff" : "#0b0d12", "text-halo-color": dark.matches ? "#0b0d12" : "#ffffff", "text-halo-width": 1.6 },
     },
-    below,
+    // Over the konbini, so a store never hides a tunnel.
+    map.getLayer(`${ROUTE}-ends`) ? `${ROUTE}-ends` : undefined,
   );
 }
 
