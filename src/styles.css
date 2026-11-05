@@ -108,6 +108,7 @@ button {
 }
 
 .glass,
+.mini-player,
 .pill,
 .round,
 .sheet,
@@ -1635,4 +1636,75 @@ button {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
+}
+
+/* ---------- Mini player ---------- */
+
+/* Floats just above the folded sheet, so the radar's time and scrubbing stay at hand on a full map. */
+.mini-player {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--sheet-height, 96px) + var(--safe-bottom) + 16px);
+  max-width: 552px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 8px;
+  border-radius: 24px;
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+  pointer-events: none;
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 320ms var(--ease-sheet);
+}
+
+.mini-player.visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.play.small {
+  flex: none;
+  width: 36px;
+  height: 36px;
+}
+
+.play.small svg {
+  width: 18px;
+  height: 18px;
+}
+
+.mini-time {
+  flex: none;
+  display: grid;
+  min-width: 64px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-clock {
+  font: 700 17px/1.1 var(--rounded);
+}
+
+.mini-relative {
+  font-size: 12px;
+  color: var(--label-2);
+  white-space: nowrap;
+}
+
+.mini-relative.forecast {
+  color: var(--accent);
+}
+
+.track.mini-track {
+  flex: 1;
+  height: 36px;
+}
+
+/* The map's credits button moves up out of the mini player's way. */
+[data-sheet="folded"] .maplibregl-ctrl-bottom-right {
+  bottom: calc(var(--sheet-height, 96px) + var(--safe-bottom) + 76px);
 }

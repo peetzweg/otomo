@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type PointerEvent } from "react";
 import { css, inCoverage, LEVELS, STEP_MS } from "../radar/jma";
 import { NOW_INDEX, radar, seek, selectStage, setCursor, togglePlay } from "../radar/radar";
 import { clock, summarize, summarizeRoute, type Summary } from "../radar/summary";
@@ -69,6 +69,8 @@ export function Sheet() {
             : reading;
 
   return (
+    <>
+    <MiniPlayer visible={collapsed} />
     <section ref={sheet} className={`sheet ${snap}`} aria-label="Rain forecast">
       {/* The head is the handle: drag it, flick it or tap it. Folded, only the head shows. */}
       <div
@@ -114,6 +116,7 @@ export function Sheet() {
         )}
       </div>
     </section>
+    </>
   );
 }
 
@@ -342,70 +345,120 @@ function useBars() {
   });
 }
 
-function Timeline() {
+/** Drag along a track to move through the frames; arrow keys step. Shared by the timeline and the mini player. */
+function useScrub() {
   const frames = useStore(radar, (s) => s.frames);
   const index = useStore(radar, (s) => s.index);
-  const playing = useStore(radar, (s) => s.playing);
-  const bars = useBars();
   const track = useRef<HTMLDivElement>(null);
   const count = frames.length;
-
+  const frame = frames[index];
   const seekTo = (clientX: number) => {
     const rect = track.current!.getBoundingClientRect();
     const fraction = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
     const next = Math.round(fraction * (count - 1));
     if (next !== radar.get().index) seek(next);
   };
+  return {
+    ref: track,
+    role: "slider",
+    tabIndex: 0,
+    "aria-label": "Radar time",
+    "aria-valuemin": 0,
+    "aria-valuemax": count - 1,
+    "aria-valuenow": index,
+    "aria-valuetext": frame ? `${clock(frame.time)}, ${relative(index)}` : undefined,
+    onPointerDown: (e: PointerEvent<HTMLDivElement>) => {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      seekTo(e.clientX);
+    },
+    onPointerMove: (e: PointerEvent<HTMLDivElement>) => e.currentTarget.hasPointerCapture(e.pointerId) && seekTo(e.clientX),
+    onKeyDown: (e: KeyboardEvent) => {
+      const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+      if (step) seek(Math.min(count - 1, Math.max(0, index + step)));
+    },
+  } as const;
+}
 
+/** The track's insides: the forecast's hatching, a bar per frame, the playhead. */
+function TrackBars() {
+  const frames = useStore(radar, (s) => s.frames);
+  const index = useStore(radar, (s) => s.index);
+  const bars = useBars();
+  const count = frames.length;
+  return (
+    <>
+      <div className="track-forecast" style={{ left: `${(NOW_INDEX / Math.max(1, count - 1)) * 100}%` }} />
+      <div className="bars">
+        {frames.map((f, i) => {
+          const { level, fill } = bars[i];
+          return (
+            <span
+              key={f.id}
+              className={`bar${level ? "" : " dry"}${i === index ? " current" : ""}`}
+              style={level ? { height: `${18 + fill * 82}%`, background: css(LEVELS[level].color, 1) } : undefined}
+            />
+          );
+        })}
+      </div>
+      <div className="playhead" style={{ left: `${(index / Math.max(1, count - 1)) * 100}%` }} />
+    </>
+  );
+}
+
+function PlayButton({ small }: { small?: boolean }) {
+  const playing = useStore(radar, (s) => s.playing);
+  const count = useStore(radar, (s) => s.frames.length);
+  return (
+    <button className={`play${small ? " small" : ""}`} onClick={togglePlay} disabled={!count} aria-label={playing ? "Pause" : "Play"}>
+      {playing ? <PauseIcon /> : <PlayIcon />}
+    </button>
+  );
+}
+
+/**
+ * With the sheet folded away to roam the map, the radar's controls float over it: play, the time, and
+ * a small track to scrub. It slides in as the sheet folds and out as it opens.
+ */
+function MiniPlayer({ visible }: { visible: boolean }) {
+  const frames = useStore(radar, (s) => s.frames);
+  const index = useStore(radar, (s) => s.index);
+  const scrub = useScrub();
+  const frame = frames[index];
+  const show = visible && frames.length > 0;
+  return (
+    <div className={`mini-player${show ? " visible" : ""}`} inert={!show} aria-label="Radar playback">
+      <PlayButton small />
+      <div className="mini-time">
+        <span className="mini-clock">{frame ? clock(frame.time) : "--:--"}</span>
+        <span className={`mini-relative${frame?.forecast ? " forecast" : ""}`}>{frame ? relative(index) : ""}</span>
+      </div>
+      <div className="track mini-track" {...scrub}>
+        <TrackBars />
+      </div>
+    </div>
+  );
+}
+
+function Timeline() {
+  const frames = useStore(radar, (s) => s.frames);
+  const index = useStore(radar, (s) => s.index);
+  const scrub = useScrub();
+  const count = frames.length;
   const frame = frames[index];
   const forecast = frame?.forecast;
 
   return (
     <div className="timeline">
       <div className="timeline-head">
-        <button className="play" onClick={togglePlay} disabled={!count} aria-label={playing ? "Pause" : "Play"}>
-          {playing ? <PauseIcon /> : <PlayIcon />}
-        </button>
+        <PlayButton />
         <div className="timeline-time">
           <span className="timeline-clock">{frame ? clock(frame.time) : "--:--"}</span>
           <span className={`timeline-relative${forecast ? " forecast" : ""}`}>{frame ? relative(index) : ""}</span>
         </div>
         <span className="timeline-zone">JST</span>
       </div>
-      <div
-        ref={track}
-        className="track"
-        role="slider"
-        tabIndex={0}
-        aria-label="Radar time"
-        aria-valuemin={0}
-        aria-valuemax={count - 1}
-        aria-valuenow={index}
-        aria-valuetext={frame ? `${clock(frame.time)}, ${relative(index)}` : undefined}
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          seekTo(e.clientX);
-        }}
-        onPointerMove={(e) => e.currentTarget.hasPointerCapture(e.pointerId) && seekTo(e.clientX)}
-        onKeyDown={(e) => {
-          const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
-          if (step) seek(Math.min(count - 1, Math.max(0, index + step)));
-        }}
-      >
-        <div className="track-forecast" style={{ left: `${(NOW_INDEX / Math.max(1, count - 1)) * 100}%` }} />
-        <div className="bars">
-          {frames.map((f, i) => {
-            const { level, fill } = bars[i];
-            return (
-              <span
-                key={f.id}
-                className={`bar${level ? "" : " dry"}${i === index ? " current" : ""}`}
-                style={level ? { height: `${18 + fill * 82}%`, background: css(LEVELS[level].color, 1) } : undefined}
-              />
-            );
-          })}
-        </div>
-        <div className="playhead" style={{ left: `${(index / Math.max(1, count - 1)) * 100}%` }} />
+      <div className="track" {...scrub}>
+        <TrackBars />
       </div>
       <div className="track-labels">
         <span>{frames[0] ? clock(frames[0].time) : ""}</span>

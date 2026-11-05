@@ -28,6 +28,8 @@ Made by a rider, for the riders. Not an official Rad Race app.
 - **Rain on your stage.** The Japan Meteorological Agency's own radar: 250 m, new every 5 minutes, the
   last 90 minutes and a forecast for the next hour. "Dry along the whole route", "Rain on 12 km ahead",
   "Rain reaching the route in ~20 min".
+- **Roam the map, keep the radar.** Fold the sheet (or just move the map) and a mini player floats
+  above it: play, the time, and a track to scrub.
 - **The elevation profile, coloured by the rain on it.** Scrub the timeline and watch the rain move
   over the climbs. Drag along the profile and a marker shows that point on the map.
 - **Where you are.** With location on, your km, what's left to climb and the next checkpoint. Once
