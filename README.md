@@ -31,7 +31,9 @@ Made by a rider, for the riders. Not an official Rad Race app.
 - **Roam the map, keep the radar.** Fold the sheet (or just move the map) and a mini player floats
   above it: play, the time, and a track to scrub.
 - **The elevation profile, coloured by the rain on it.** Scrub the timeline and watch the rain move
-  over the climbs. Drag along the profile and a marker shows that point on the map.
+  over the climbs. Drag along the profile and a marker shows that point on the map; pinch it to zoom
+  in on a stretch, slide two fingers to move along, double-tap to see the whole stage again.
+- **km on the map.** Checkpoints, konbini, tunnels and climb tops carry their km.
 - **Where you are.** With location on, your km, what's left to climb and the next checkpoint. Once
   you're on the route, the forecast only looks at the road ahead.
 - **Checkpoints, dates and start times** for each stage, from the riders portal.

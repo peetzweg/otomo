@@ -1,14 +1,14 @@
 import { BRAND_COLORS, brandIcon, BRANDS, konbini, NEAR_M, type Konbini } from "../stages/konbini";
-import { routeLength, type Stage } from "../stages/stages";
+import type { Stage } from "../stages/stages";
+import { across, inside, type Span } from "./span";
 
 /** Under the profile: a tick per store, in its chain's colour. Where they thin out shows at a glance. */
-export function KonbiniTicks({ stage }: { stage: Stage }) {
-  const length = routeLength(stage);
+export function KonbiniTicks({ stage, span }: { stage: Stage; span: Span }) {
   return (
     <div className="konbini-ticks" aria-hidden="true">
-      {konbini(stage).map((s, i) => (
-        <i key={i} style={{ left: `${(s.routeKm / length) * 100}%`, background: BRAND_COLORS[s.brand] }} />
-      ))}
+      {konbini(stage).map(
+        (s, i) => inside(span, s.routeKm) && <i key={i} style={{ left: `${across(span, s.routeKm) * 100}%`, background: BRAND_COLORS[s.brand] }} />,
+      )}
     </div>
   );
 }

@@ -1,9 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type RefObject } from "react";
 import { css, inCoverage, LEVELS, STEP_MS } from "../radar/jma";
 import { NOW_INDEX, radar, seek, selectStage, setCursor, togglePlay } from "../radar/radar";
 import { clock, summarize, summarizeRoute, type Summary } from "../radar/summary";
 import type { Progress } from "../stages/progress";
-import { checkpoints, climbBetween, dayLabel, elevationAt, routeLength, STAGES, stageById, type Stage } from "../stages/stages";
+import { checkpoints, climbBetween, dayLabel, elevationAt, PROFILE_KM, routeLength, STAGES, stageById, type Stage } from "../stages/stages";
 import { climbs } from "../stages/climbs";
 import { nextKonbini } from "../stages/konbini";
 import { nextTunnel, tunnelLength } from "../stages/tunnels";
@@ -15,6 +15,7 @@ import { KonbiniSection, KonbiniTicks } from "./Konbini";
 import { TunnelSection, TunnelStrip } from "./Tunnels";
 import { useDrawer } from "./drawer";
 import { StageWeather, useStageWeather, type StageWeatherData } from "./StageWeather";
+import { across, inside, type Span } from "./span";
 import { openClimb, setSnap, view } from "./view";
 
 /** The panel over the bottom of the map: what the rain does here, and the timeline to scrub through it. */
@@ -215,68 +216,171 @@ const PROFILE_H = 64;
 /** At least this much height range, so a flat stage looks flat. */
 const MIN_RANGE_M = 300;
 
+/** Zoomed in no further than this many km across: below it, 500 m samples get too coarse to read. */
+const MIN_SPAN_KM = 3;
+/** Two taps within this long are a double tap: back to the whole stage. */
+const DOUBLE_TAP_MS = 300;
+
+/**
+ * Pinch the profile to zoom in on a stretch, slide two fingers to move along it, double-tap (or "Whole
+ * stage") to zoom back out. One finger still scrubs. On a trackpad, pinch (ctrl + wheel) zooms and a
+ * sideways swipe pans.
+ */
+function useProfileZoom(stage: Stage, chart: RefObject<HTMLDivElement | null>) {
+  const length = routeLength(stage);
+  const [span, setSpan] = useState<Span>([0, length]);
+  const spanRef = useRef(span);
+  spanRef.current = span;
+  useEffect(() => setSpan([0, length]), [stage.id]);
+
+  const fit = (from: number, width: number): Span => {
+    const w = Math.min(length, Math.max(MIN_SPAN_KM, width));
+    const start = Math.min(length - w, Math.max(0, from));
+    return [start, start + w];
+  };
+  /** Zoom by `factor` (under 1 is in) keeping the km at fraction `at` across where it is. */
+  const zoomAround = (factor: number, at: number) => {
+    const [a, b] = spanRef.current;
+    const km = a + at * (b - a);
+    const width = (b - a) * factor;
+    setSpan(fit(km - at * width, width));
+  };
+
+  const pointers = useRef(new Map<number, number>());
+  const pinch = useRef<{ distance: number; middle: number; span: Span } | null>(null);
+  /** Once two fingers were down, the one left behind doesn't start scrubbing. */
+  const pinched = useRef(false);
+  const lastTap = useRef(0);
+
+  const fraction = (clientX: number) => {
+    const rect = chart.current!.getBoundingClientRect();
+    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+  };
+  const scrub = (clientX: number) => {
+    const [a, b] = spanRef.current;
+    setCursor(a + fraction(clientX) * (b - a));
+  };
+
+  // Trackpad gestures arrive as wheel events, which React only listens to passively.
+  useEffect(() => {
+    const el = chart.current!;
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        zoomAround(Math.exp(e.deltaY * 0.01), fraction(e.clientX));
+      } else if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        e.preventDefault();
+        const [a, b] = spanRef.current;
+        setSpan(fit(a + (e.deltaX / el.clientWidth) * (b - a), b - a));
+      }
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [stage.id]);
+
+  const handlers = {
+    onPointerDown(e: PointerEvent<HTMLDivElement>) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      pointers.current.set(e.pointerId, e.clientX);
+      if (pointers.current.size === 2) {
+        setCursor(undefined);
+        pinched.current = true;
+        const [x1, x2] = [...pointers.current.values()];
+        pinch.current = { distance: Math.max(8, Math.abs(x1 - x2)), middle: fraction((x1 + x2) / 2), span: spanRef.current };
+        return;
+      }
+      if (pointers.current.size > 2) return;
+      if (e.timeStamp - lastTap.current < DOUBLE_TAP_MS) {
+        lastTap.current = 0;
+        setCursor(undefined);
+        setSpan([0, length]);
+        return;
+      }
+      lastTap.current = e.timeStamp;
+      scrub(e.clientX);
+    },
+    onPointerMove(e: PointerEvent<HTMLDivElement>) {
+      if (!pointers.current.has(e.pointerId)) return;
+      pointers.current.set(e.pointerId, e.clientX);
+      const p = pinch.current;
+      if (p && pointers.current.size === 2) {
+        const [x1, x2] = [...pointers.current.values()];
+        const width = (p.span[1] - p.span[0]) * (p.distance / Math.max(8, Math.abs(x1 - x2)));
+        // The km that was under the fingers' middle stays under it, wherever the fingers go.
+        const km = p.span[0] + p.middle * (p.span[1] - p.span[0]);
+        setSpan(fit(km - fraction((x1 + x2) / 2) * width, width));
+        return;
+      }
+      if (!pinched.current && pointers.current.size === 1) scrub(e.clientX);
+    },
+    onPointerUp(e: PointerEvent<HTMLDivElement>) {
+      pointers.current.delete(e.pointerId);
+      if (pointers.current.size < 2) pinch.current = null;
+      if (pointers.current.size === 0) {
+        pinched.current = false;
+        setCursor(undefined);
+      }
+    },
+  };
+  return { span, zoomed: span[0] > 0.01 || span[1] < length - 0.01, reset: () => setSpan([0, length]), handlers: { ...handlers, onPointerCancel: handlers.onPointerUp } };
+}
+
 /**
  * The stage's elevation profile, filled with the rain on the route at the frame on the map: scrub the
- * timeline and the colours move along the climbs.
+ * timeline and the colours move along the climbs. It zooms (see useProfileZoom), and everything on it
+ * zooms along: checkpoints, climbs, konbini, tunnels, you.
  */
 function RouteProfile({ stage, riding, weather }: { stage: Stage; riding: Progress | undefined; weather: StageWeatherData | undefined }) {
   const row = useStore(radar, (s) => s.route?.[s.index]);
   const cursorKm = useStore(radar, (s) => s.cursorKm);
   const chart = useRef<HTMLDivElement>(null);
   const [from, to] = stage.title.split(" → ");
-  const length = stage.points[stage.points.length - 1][2];
+  const length = routeLength(stage);
   const { profile } = stage;
+  const { span, zoomed, reset, handlers } = useProfileZoom(stage, chart);
 
-  const low = Math.min(...profile);
+  // Only the samples in view (and one either side, so the line runs off the edges).
+  const first = Math.max(0, Math.floor(span[0] / PROFILE_KM) - 1);
+  const last = Math.min(profile.length - 1, Math.ceil(span[1] / PROFILE_KM) + 1);
+  const visible = profile.slice(first, last + 1);
+  const low = Math.min(...visible);
   const high = Math.max(...profile);
-  const range = Math.max(high - low, MIN_RANGE_M);
-  const x = (i: number) => (i / (profile.length - 1)) * PROFILE_W;
+  const top = Math.max(...visible);
+  // Zoomed in, the height range shrinks too, so a short climb fills the chart; never below 60 m.
+  const range = Math.max(top - low, zoomed ? 60 : MIN_RANGE_M);
+  const xAt = (km: number) => across(span, km) * PROFILE_W;
   const y = (m: number) => PROFILE_H - 1 - ((m - low) / range) * (PROFILE_H - 4);
-  const line = profile.map((m, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(m).toFixed(1)}`).join("");
+  const line = visible.map((m, k) => `${k ? "L" : "M"}${xAt((first + k) * PROFILE_KM).toFixed(1)},${y(m).toFixed(1)}`).join("");
   // Where on the chart a km falls, as a fraction across and in pixels down.
-  const across = (km: number) => `${(km / length) * 100}%`;
+  const left = (km: number) => `${across(span, km) * 100}%`;
   const down = (km: number) => `${(y(elevationAt(stage, km)) / PROFILE_H) * 100}%`;
 
-  // Drag along the profile to see where that point is on the map.
-  const point = (clientX: number) => {
-    const rect = chart.current!.getBoundingClientRect();
-    setCursor(Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)) * length);
-  };
-
-  // Runs of equal intensity become hard-edged gradient stops.
+  // Runs of equal intensity become hard-edged gradient stops, placed by km so they zoom with the line.
   const stops: { offset: number; color: string }[] = [];
   if (row) {
+    const at = (i: number) => Math.min(1, Math.max(0, across(span, (i / row.length) * length)));
     let start = 0;
     for (let i = 1; i <= row.length; i++) {
       if (i < row.length && row[i] === row[start]) continue;
       const color = row[start] ? css(LEVELS[row[start]].color, 1) : "var(--profile-dry)";
-      stops.push({ offset: start / row.length, color }, { offset: i / row.length, color });
+      stops.push({ offset: at(start), color }, { offset: at(i), color });
       start = i;
     }
   }
   const fill = `rain-${stage.id}`;
   const area = `${line}L${PROFILE_W},${PROFILE_H}L0,${PROFILE_H}Z`;
+  const shownCheckpoints = checkpoints(stage).filter((cp) => inside(span, cp.routeKm));
 
   return (
     <div className="profile">
       <div className="profile-checkpoints">
-        {checkpoints(stage).map((cp) => (
-          <span key={cp.code} style={{ left: `${(cp.routeKm / length) * 100}%` }} title={`${cp.name}, km ${cp.km}`}>
+        {shownCheckpoints.map((cp) => (
+          <span key={cp.code} style={{ left: left(cp.routeKm) }} title={`${cp.name}, km ${cp.km}`}>
             {cp.code}
           </span>
         ))}
       </div>
-      <div
-        ref={chart}
-        className="profile-chart"
-        onPointerDown={(e) => {
-          e.currentTarget.setPointerCapture(e.pointerId);
-          point(e.clientX);
-        }}
-        onPointerMove={(e) => e.currentTarget.hasPointerCapture(e.pointerId) && point(e.clientX)}
-        onPointerUp={() => setCursor(undefined)}
-        onPointerCancel={() => setCursor(undefined)}
-      >
+      <div ref={chart} className="profile-chart" {...handlers}>
         <svg viewBox={`0 0 ${PROFILE_W} ${PROFILE_H}`} preserveAspectRatio="none" aria-hidden="true">
           <defs>
             <linearGradient id={fill} gradientUnits="userSpaceOnUse" x1="0" x2={PROFILE_W} y1="0" y2="0">
@@ -290,41 +394,58 @@ function RouteProfile({ stage, riding, weather }: { stage: Stage; riding: Progre
           {riding && (
             <>
               <clipPath id={`done-${stage.id}`}>
-                <rect x={0} y={0} width={(riding.km / length) * PROFILE_W} height={PROFILE_H} />
+                <rect x={0} y={0} width={Math.min(1, Math.max(0, across(span, riding.km))) * PROFILE_W} height={PROFILE_H} />
               </clipPath>
               <path className="profile-done" d={area} clipPath={`url(#done-${stage.id})`} />
             </>
           )}
-          {checkpoints(stage).map((cp) => (
-            <line key={cp.code} className="profile-checkpoint" x1={(cp.routeKm / length) * PROFILE_W} x2={(cp.routeKm / length) * PROFILE_W} y1={0} y2={PROFILE_H} />
+          {shownCheckpoints.map((cp) => (
+            <line key={cp.code} className="profile-checkpoint" x1={xAt(cp.routeKm)} x2={xAt(cp.routeKm)} y1={0} y2={PROFILE_H} />
           ))}
         </svg>
-        {riding && <span className="profile-rider" style={{ left: across(riding.km), top: down(riding.km) }} />}
-        {cursorKm !== undefined && (
+        {riding && inside(span, riding.km) && <span className="profile-rider" style={{ left: left(riding.km), top: down(riding.km) }} />}
+        {cursorKm !== undefined && inside(span, cursorKm) && (
           <>
-            <span className="profile-cursor" style={{ left: across(cursorKm) }} />
-            <span className="profile-cursor-dot" style={{ left: across(cursorKm), top: down(cursorKm) }} />
-            <span className="profile-cursor-label" style={{ left: `clamp(48px, ${across(cursorKm)}, calc(100% - 48px))` }}>
+            <span className="profile-cursor" style={{ left: left(cursorKm) }} />
+            <span className="profile-cursor-dot" style={{ left: left(cursorKm), top: down(cursorKm) }} />
+            <span className="profile-cursor-label" style={{ left: `clamp(48px, ${left(cursorKm)}, calc(100% - 48px))` }}>
               km {Math.round(officialKm(stage, cursorKm))} · {elevationAt(stage, cursorKm).toLocaleString("en-US")} m
             </span>
           </>
         )}
+        {zoomed && (
+          <button className="profile-reset" onPointerDown={(e) => e.stopPropagation()} onClick={reset}>
+            Whole stage
+          </button>
+        )}
       </div>
-      <TunnelStrip stage={stage} />
-      <KonbiniTicks stage={stage} />
-      <ClimbMarks stage={stage} />
+      <TunnelStrip stage={stage} span={span} />
+      <KonbiniTicks stage={stage} span={span} />
+      <ClimbMarks stage={stage} span={span} />
       <div className="profile-labels">
-        <span>
-          {from}
-          <DayTemps weather={weather} at={0} />
-        </span>
-        <span>
-          {stage.distanceKm} km · ↑{stage.climbM.toLocaleString("en-US")} m · top {high.toLocaleString("en-US")} m
-        </span>
-        <span>
-          {to}
-          <DayTemps weather={weather} at={-1} />
-        </span>
+        {zoomed ? (
+          <>
+            <span>km {Math.round(officialKm(stage, span[0]))}</span>
+            <span>
+              {(officialKm(stage, span[1]) - officialKm(stage, span[0])).toFixed(1)} km shown · top {top.toLocaleString("en-US")} m
+            </span>
+            <span>km {Math.round(officialKm(stage, span[1]))}</span>
+          </>
+        ) : (
+          <>
+            <span>
+              {from}
+              <DayTemps weather={weather} at={0} />
+            </span>
+            <span>
+              {stage.distanceKm} km · ↑{stage.climbM.toLocaleString("en-US")} m · top {high.toLocaleString("en-US")} m
+            </span>
+            <span>
+              {to}
+              <DayTemps weather={weather} at={-1} />
+            </span>
+          </>
+        )}
       </div>
     </div>
   );

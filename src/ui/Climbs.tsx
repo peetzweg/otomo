@@ -2,6 +2,7 @@ import type { Climb } from "../stages/climbs";
 import { climbs, GRADE_SCALE, gradeColor, steps } from "../stages/climbs";
 import type { Progress } from "../stages/progress";
 import { routeLength, type Stage } from "../stages/stages";
+import { across, clip, type Span } from "./span";
 import { etaAtKm } from "../stages/weather";
 import { openClimb } from "./view";
 
@@ -33,19 +34,25 @@ export function CategoryBadge({ climb, toughest }: { climb: Climb; toughest?: bo
 }
 
 /** Under the stage's profile: each climb's span as a bar, its badge centred on it, to tap for its page. */
-export function ClimbMarks({ stage }: { stage: Stage }) {
+export function ClimbMarks({ stage, span }: { stage: Stage; span: Span }) {
   const all = climbs(stage);
-  const length = routeLength(stage);
+  // Only what's in view; a climb half in view gets its badge in the middle of the part that is.
+  const shown = all.flatMap((c) => {
+    const at = clip(span, c.startKm, c.topKm);
+    if (!at) return [];
+    const middle = (Math.max(span[0], c.startKm) + Math.min(span[1], c.topKm)) / 2;
+    return [{ c, at, middle: across(span, middle) }];
+  });
   return (
     <div className="climb-marks">
-      {all.map((c) => (
-        <span key={c.number} className="climb-span" style={{ left: `${(c.startKm / length) * 100}%`, width: `${((c.topKm - c.startKm) / length) * 100}%` }} />
+      {shown.map(({ c, at }) => (
+        <span key={c.number} className="climb-span" style={at} />
       ))}
-      {all.map((c) => (
+      {shown.map(({ c, middle }) => (
         <button
           key={c.number}
           className="climb-mark"
-          style={{ left: `${((c.startKm + c.topKm) / 2 / length) * 100}%` }}
+          style={{ left: `${middle * 100}%` }}
           onClick={() => openClimb(c.number)}
           aria-label={`Climb ${c.number}: ${km1(c.lengthKm)} km at ${pct(c.averageGrade)}, category ${c.category}`}
         >

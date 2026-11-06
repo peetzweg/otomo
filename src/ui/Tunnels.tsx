@@ -1,14 +1,15 @@
-import { routeLength, type Stage } from "../stages/stages";
+import type { Stage } from "../stages/stages";
 import { tunnelLength, tunnels } from "../stages/tunnels";
+import { clip, type Span } from "./span";
 
 /** Under the profile: a dark bar for each tunnel, as long as the tunnel. */
-export function TunnelStrip({ stage }: { stage: Stage }) {
-  const length = routeLength(stage);
+export function TunnelStrip({ stage, span }: { stage: Stage; span: Span }) {
   return (
     <div className="tunnel-strip" aria-hidden="true">
-      {tunnels(stage).map((t) => (
-        <i key={t.fromKm} style={{ left: `${(t.fromKm / length) * 100}%`, width: `max(2px, ${((t.toKm - t.fromKm) / length) * 100}%)` }} />
-      ))}
+      {tunnels(stage).map((t) => {
+        const at = clip(span, t.fromKm, t.toKm);
+        return at && <i key={t.fromKm} style={{ left: at.left, width: `max(2px, ${at.width})` }} />;
+      })}
     </div>
   );
 }

@@ -263,7 +263,7 @@ function syncKonbini(map: MapLibre, stageId: string | undefined) {
     type: "geojson",
     data: {
       type: "FeatureCollection",
-      features: konbini(stage).map((s) => ({ type: "Feature", properties: { brand: s.brand }, geometry: { type: "Point", coordinates: [s.lng, s.lat] } })),
+      features: konbini(stage).map((s) => ({ type: "Feature", properties: { brand: s.brand, km: `km ${Math.round(s.km)}` }, geometry: { type: "Point", coordinates: [s.lng, s.lat] } })),
     },
     attribution: '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Konbini © OpenStreetMap</a>',
   });
@@ -278,7 +278,16 @@ function syncKonbini(map: MapLibre, stageId: string | undefined) {
         "icon-image": ["concat", `${KONBINI}-`, ["get", "brand"]],
         "icon-size": ["interpolate", ["linear"], ["zoom"], 7, 0.55, 11, 0.8, 14, 1],
         "icon-padding": 0,
+        // Its km beside it, where there's room for one.
+        "text-field": ["get", "km"],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 7, 10, 12, 12],
+        "text-anchor": "left",
+        "text-offset": [1.2, 0],
+        "text-optional": true,
+        "text-padding": 1,
       },
+      paint: { "text-color": dark.matches ? "#ffffff" : "#0b0d12", "text-halo-color": dark.matches ? "#0b0d12" : "#ffffff", "text-halo-width": 1.6 },
     },
     map.getLayer(`${ROUTE}-ends`) ? `${ROUTE}-ends` : undefined,
   );
@@ -311,7 +320,7 @@ function syncTunnels(map: MapLibre, stageId: string | undefined) {
       type: "FeatureCollection",
       features: all.map((t) => ({
         type: "Feature",
-        properties: { length: t.lengthM, label: tunnelLength(t.lengthM) },
+        properties: { length: t.lengthM, label: `km ${Math.round(t.from)} · ${tunnelLength(t.lengthM)}` },
         geometry: { type: "Point", coordinates: pointAt(stage, (t.fromKm + t.toKm) / 2) },
       })),
     },
@@ -387,7 +396,7 @@ function syncClimb(map: MapLibre, stageId: string | undefined, number: number | 
   // A store at the foot of the climb stays visible over it.
   if (map.getLayer(KONBINI)) map.moveLayer(KONBINI);
   top.setLngLat(pointAt(stage, climb.topKm)).addTo(map);
-  top.getElement().textContent = `▲ ${climb.topElevation.toLocaleString("en-US")} m`;
+  top.getElement().textContent = `▲ ${climb.topElevation.toLocaleString("en-US")} m · km ${Math.round(climb.top)}`;
   const line = stretch(stage, climb.startKm, climb.topKm);
   const lngs = line.map((p) => p[0]);
   const lats = line.map((p) => p[1]);
@@ -573,7 +582,7 @@ export function RadarMap() {
         ? checkpoints(ride).map((cp) => {
             const pin = document.createElement("div");
             pin.className = "checkpoint";
-            pin.textContent = cp.code;
+            pin.textContent = `${cp.code} · km ${Math.round(cp.km)}`;
             pin.title = `${cp.name} · km ${cp.km}`;
             return new Marker({ element: pin }).setLngLat([cp.lng, cp.lat]).addTo(map);
           })
