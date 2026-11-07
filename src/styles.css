@@ -1762,3 +1762,242 @@ button {
     transform: scale(0.9);
   }
 }
+
+/* ---------- Farewell ---------- */
+
+/*
+ * A letter, not a poster: left-aligned, one measure, a calm size for reading, and only the news set
+ * apart. Sized to fit a phone screen without scrolling.
+ */
+.welcome-sheet.farewell {
+  text-align: left;
+  padding: 22px 22px 16px;
+}
+
+.farewell-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.farewell-mascot {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  animation: float 3.2s ease-in-out infinite alternate;
+}
+
+.farewell-event {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.farewell-title {
+  margin: 2px 0 0;
+  font: 800 30px/1.1 var(--rounded);
+  letter-spacing: -0.01em;
+}
+
+.farewell-reading {
+  margin: 3px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ff8fb5;
+}
+
+.farewell-text {
+  margin: 14px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.farewell-text b {
+  color: #fff;
+}
+
+.farewell-text a {
+  color: #fff;
+  text-decoration-color: rgba(255, 255, 255, 0.35);
+  text-underline-offset: 2px;
+}
+
+.farewell-wish {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* The tour in numbers, arriving one after another. */
+.farewell-numbers {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.farewell-numbers li {
+  display: grid;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  transition:
+    opacity 360ms var(--ease-out) calc(220ms + var(--i) * 50ms),
+    transform 360ms var(--ease-out) calc(220ms + var(--i) * 50ms);
+}
+
+@starting-style {
+  .farewell-numbers li {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.farewell-numbers b {
+  font: 800 18px/1.15 var(--rounded);
+  font-variant-numeric: tabular-nums;
+}
+
+.farewell-numbers span {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* The news, set apart in the mascot's pink. */
+.farewell-news {
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 143, 181, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 143, 181, 0.4);
+  font: 700 16px/1.35 var(--rounded);
+  color: #fff;
+}
+
+.farewell-news b {
+  color: #ff8fb5;
+}
+
+.farewell-news span {
+  display: block;
+  margin-top: 4px;
+  font: 500 13px/1.35 var(--sans);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.farewell-signature {
+  margin: 10px 0 0;
+  font: 600 15px/1 var(--rounded);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* The ask, centred: the line, then the button under it. */
+.farewell-kofi {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13px;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.farewell-kofi a {
+  flex: none;
+  transition: transform 160ms var(--ease-out);
+}
+
+.farewell-kofi a:active {
+  transform: scale(0.97);
+}
+
+.farewell-kofi img {
+  display: block;
+  width: 168px;
+  height: auto;
+}
+
+.farewell .welcome-go {
+  margin-top: 16px;
+  font: 700 18px/1 var(--rounded);
+}
+
+/* In the otomo pill: the Ko-fi cup, back to the farewell. */
+.brand-kofi {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 -6px 0 2px;
+  border-radius: 50%;
+  transition: transform 160ms var(--ease-out);
+}
+
+.brand-kofi:active {
+  transform: scale(0.9);
+}
+
+.brand-kofi img {
+  width: 26px;
+  height: 26px;
+}
+
+/* Shorter phones (iPhone SE): the same letter, set a little tighter, so it fits without scrolling. */
+@media (max-height: 720px) {
+  .welcome-sheet.farewell {
+    padding: 16px 18px 12px;
+  }
+
+  .farewell-mascot {
+    width: 52px;
+    height: 52px;
+  }
+
+  .farewell-title {
+    font-size: 26px;
+  }
+
+  .farewell-text {
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .farewell-numbers,
+  .farewell-news {
+    margin-top: 10px;
+  }
+
+  .farewell-numbers li {
+    padding: 8px 10px;
+  }
+
+  .farewell-numbers b {
+    font-size: 16px;
+  }
+
+  .farewell-news {
+    padding: 12px 14px;
+    font-size: 15px;
+  }
+
+  .farewell-kofi {
+    margin-top: 12px;
+    padding-top: 10px;
+  }
+
+  .farewell .welcome-go {
+    height: 48px;
+    margin-top: 12px;
+  }
+}

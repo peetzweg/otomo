@@ -10,6 +10,9 @@ export const BASES: { id: Base; label: string }[] = [
 
 const BASE_KEY = "otomo.base";
 const WELCOMED_KEY = "otomo.welcomed";
+const FAREWELL_KEY = "otomo.farewell";
+/** After the last stage's finish: from here on, the farewell sheet is due (once). */
+const TOUR_OVER = Date.parse("2026-11-06T17:00:00+09:00");
 // "terrain" (shading only) was folded into topo, which shades too.
 const savedBase = (localStorage.getItem(BASE_KEY)?.replace("terrain", "topo") ?? null) as Base | null;
 
@@ -21,7 +24,19 @@ export const view = createStore({
   climb: undefined as number | undefined,
   /** The welcome sheet has been seen; it only ever shows once. */
   welcomed: localStorage.getItem(WELCOMED_KEY) === "1",
+  /** The tour is over and its farewell not yet seen. `?farewell` in the address shows it regardless. */
+  farewell: new URLSearchParams(location.search).has("farewell") || (Date.now() >= TOUR_OVER && localStorage.getItem(FAREWELL_KEY) !== "1"),
 });
+
+/** Back to the farewell, from the Ko-fi cup in the top bar. */
+export const openFarewell = () => view.set({ farewell: true });
+
+/** Seen. After the tour the welcome is moot too, so it never shows after the farewell. */
+export function finishFarewell() {
+  localStorage.setItem(FAREWELL_KEY, "1");
+  localStorage.setItem(WELCOMED_KEY, "1");
+  view.set({ farewell: false, welcomed: true });
+}
 
 /** Opens a climb's page (at half, so the map shows the climb), or closes it with `undefined`. */
 export function openClimb(climb: number | undefined) {

@@ -21,7 +21,7 @@ In Japanese, *otomo* (お供) is the companion you bring along on a journey. Thi
 Kyushu for the four stages of the Tour de Friends, Fukuoka to Sakurajima, 3 to 6 November 2026. It's an
 installable web app: open it in Safari or Chrome and add it to your Home Screen.
 
-Made by a rider, for the riders. Not an official Rad Race app.
+Made by a rider, for the riders. Not an official Rad Race app. Enjoyed it? [Support me on Ko-fi](https://ko-fi.com/peetzweg).
 
 ## What it does
 

@@ -1,14 +1,14 @@
 import { useRef, useState } from "react";
 import { css, LEVELS } from "./radar/jma";
-import { followMe, locate, NOW_INDEX, radar } from "./radar/radar";
-import { clock } from "./radar/summary";
+import { followMe, locate, radar } from "./radar/radar";
 import { useStore } from "./store";
 import { LayersIcon, LegendIcon, LocateIcon } from "./ui/icons";
 import { Diagnostics } from "./ui/Diagnostics";
 import { InstallHint } from "./ui/InstallHint";
 import { RadarMap } from "./ui/RadarMap";
 import { Sheet } from "./ui/Sheet";
-import { BASES, setBase, view } from "./ui/view";
+import { BASES, openFarewell, setBase, view } from "./ui/view";
+import { Farewell } from "./ui/Farewell";
 import { Welcome } from "./ui/Welcome";
 
 export function App() {
@@ -18,8 +18,8 @@ export function App() {
   const locating = useStore(radar, (s) => s.locating);
   const stage = useStore(radar, (s) => s.stage);
   const tracking = useStore(radar, (s) => s.tracking);
-  const updated = useStore(radar, (s) => s.frames[NOW_INDEX]?.time);
   const welcomed = useStore(view, (s) => s.welcomed);
+  const farewell = useStore(view, (s) => s.farewell);
 
   return (
     <>
@@ -36,7 +36,15 @@ export function App() {
         >
           <img className="brand-mascot" src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
           <span className="brand-name">otomo</span>
-          {updated && <span className="brand-updated">Radar {clock(updated)}</span>}
+          {/* The Ko-fi cup: the farewell again, with its thanks and the way to support. */}
+          <button
+            className="brand-kofi"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={openFarewell}
+            aria-label="Thanks, and support Otomo on Ko-fi"
+          >
+            <img src={`${import.meta.env.BASE_URL}kofi/cup.png`} alt="" />
+          </button>
         </div>
         <div className="actions">
           <button className={`round${panel === "layers" ? " on" : ""}`} onClick={() => toggle("layers")} aria-label="Map style" aria-pressed={panel === "layers"}>
@@ -56,12 +64,13 @@ export function App() {
         </div>
       </header>
       {/* One thing at a time: the welcome first, then the install hint. */}
-      {welcomed && !panel && <InstallHint />}
+      {welcomed && !farewell && !panel && <InstallHint />}
       {panel === "legend" && <Legend />}
       {panel === "layers" && <Layers onPick={() => setPanel(undefined)} />}
       {panel === "diagnostics" && <Diagnostics onClose={() => setPanel(undefined)} />}
       <Sheet />
-      {!welcomed && <Welcome />}
+      {/* After the tour, the farewell instead of the welcome. */}
+      {farewell ? <Farewell /> : !welcomed && <Welcome />}
     </>
   );
 }
