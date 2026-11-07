@@ -1934,22 +1934,30 @@ button {
 
 /* In the otomo pill: the Ko-fi cup, back to the farewell. */
 .brand-kofi {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  margin: 0 -6px 0 2px;
-  border-radius: 50%;
-  transition: transform 160ms var(--ease-out);
-}
-
-.brand-kofi:active {
-  transform: scale(0.9);
-}
-
-.brand-kofi img {
   width: 26px;
   height: 26px;
+  margin: 0 -4px 0 2px;
+}
+
+/* The otomo pill is the one button that sits apart, so it gets a press with a little more body:
+   in fast (120 ms) and down to 0.95, then back with a soft overshoot when let go. Release is
+   slower than press, so the press itself feels instant. */
+.pill.brand {
+  transition: transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pill.brand[data-pressed] {
+  transform: scale(0.95);
+  transition-duration: 120ms;
+  transition-timing-function: var(--ease-out);
+}
+
+/* Without motion: no scaling, just a dim to acknowledge the touch. */
+@media (prefers-reduced-motion: reduce) {
+  .pill.brand[data-pressed] {
+    transform: none;
+    opacity: 0.7;
+  }
 }
 
 /* Shorter phones (iPhone SE): the same letter, set a little tighter, so it fits without scrolling. */

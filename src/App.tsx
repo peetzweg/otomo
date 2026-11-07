@@ -15,6 +15,13 @@ export function App() {
   const [panel, setPanel] = useState<"legend" | "layers" | "diagnostics">();
   const toggle = (name: "legend" | "layers") => setPanel(panel === name ? undefined : name);
   const press = useRef<number>(undefined);
+  const longPressed = useRef(false);
+  // Pressed state by hand: iOS doesn't reliably apply :active on touch.
+  const [pressed, setPressed] = useState(false);
+  const release = () => {
+    clearTimeout(press.current);
+    setPressed(false);
+  };
   const locating = useStore(radar, (s) => s.locating);
   const stage = useStore(radar, (s) => s.stage);
   const tracking = useStore(radar, (s) => s.tracking);
@@ -25,27 +32,31 @@ export function App() {
     <>
       <RadarMap />
       <header className="topbar">
-        <div
+        {/* The whole pill: a tap brings back the farewell (its thanks and the way to support);
+            a long-press opens the diagnostics instead. */}
+        <button
           className="pill brand"
-          // Long-press for the diagnostics panel.
-          onPointerDown={() => (press.current = window.setTimeout(() => setPanel("diagnostics"), 700))}
-          onPointerUp={() => clearTimeout(press.current)}
-          onPointerLeave={() => clearTimeout(press.current)}
-          onPointerCancel={() => clearTimeout(press.current)}
+          data-pressed={pressed || undefined}
+          onPointerDown={() => {
+            setPressed(true);
+            longPressed.current = false;
+            press.current = window.setTimeout(() => {
+              longPressed.current = true;
+              setPressed(false);
+              setPanel("diagnostics");
+            }, 700);
+          }}
+          onPointerUp={release}
+          onPointerLeave={release}
+          onPointerCancel={release}
+          onClick={() => (longPressed.current ? (longPressed.current = false) : openFarewell())}
           onContextMenu={(e) => e.preventDefault()}
+          aria-label="Otomo: thanks, and support it on Ko-fi"
         >
           <img className="brand-mascot" src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" />
           <span className="brand-name">otomo</span>
-          {/* The Ko-fi cup: the farewell again, with its thanks and the way to support. */}
-          <button
-            className="brand-kofi"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={openFarewell}
-            aria-label="Thanks, and support Otomo on Ko-fi"
-          >
-            <img src={`${import.meta.env.BASE_URL}kofi/cup.png`} alt="" />
-          </button>
-        </div>
+          <img className="brand-kofi" src={`${import.meta.env.BASE_URL}kofi/cup.png`} alt="" />
+        </button>
         <div className="actions">
           <button className={`round${panel === "layers" ? " on" : ""}`} onClick={() => toggle("layers")} aria-label="Map style" aria-pressed={panel === "layers"}>
             <LayersIcon />
